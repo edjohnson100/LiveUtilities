@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+    <link rel="stylesheet" href="liveutils_style.css">
+    <title>Live Utilities</title>
+</head>
+<body>
+    <div class="header">
+        <div class="title-group">
+            <h2 id="appTitle">LIVE PARAMETERS</h2>
+            <div id="docName" class="sub-header">Scanning...</div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <button class="icon-btn" onclick="refreshData()" title="Rescan Model" style="padding: 4px 8px; font-size: 14px;">↻</button>
+            <label class="theme-switch" title="Toggle Light/Dark Mode">
+                <input type="checkbox" id="theme-checkbox" checked>
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-params')">Parameters</button>
+        <button class="tab-btn" onclick="switchTab('tab-config')">Config</button>
+        <button class="tab-btn" onclick="switchTab('tab-changelog')">Changelog</button>
+    </div>
+
+    <div id="statusMessage" class="status-box"></div>
+
+    <div id="tab-params" class="tab-content active">
+        <div class="controls-bar">
+            <label class="fav-toggle" title="Show Favorites Only">
+                <input type="checkbox" id="favFilterCheck">
+                <span>★ Favs Only</span>
+            </label>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Filter parameters...">
+            </div>
+        </div>
+
+        <div class="section collapsed" id="sec-create-param">
+            <div class="section-header" onclick="toggleSection('sec-create-param')">
+                <h3>Add Parameter</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <div class="create-grid">
+                    <input type="text" id="new_name" placeholder="Name (e.g. Width)" />
+                    <select id="new_unit" onchange="toggleCustomUnit(this)">
+                        <option value="mm">Length (mm)</option>
+                        <option value="in">Length (in)</option>
+                        <option value="deg">Angle (deg)</option>
+                        <option value="">No Units</option>
+                        <option value="TEXT">Text</option>
+                        <option value="OTHER">Other...</option>
+                    </select>
+                    <input type="text" id="custom_unit" class="full-width" placeholder="Type unit (e.g. cm)" style="display:none;" />
+                    <input type="text" id="new_expr" placeholder="Expression" class="full-width" />
+                    <input type="text" id="new_comm" placeholder="Comment (Optional)" class="full-width" />
+                </div>
+                <button class="btn-primary" onclick="createParam()">Create Parameter</button>
+            </div>
+        </div>
+
+        <div id="paramList" class="data-container">
+            <div class="empty-state">Loading parameters...</div>
+        </div>
+    </div>
+
+    <div id="tab-config" class="tab-content">
+        <div class="section" id="sec-configs">
+            <div class="section-header" onclick="toggleSection('sec-configs')">
+                <h3>Snapshots</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <div id="configList" class="data-container">
+                    <div class="empty-state">No configs saved.</div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="newConfigName" placeholder="New Config Name...">
+                    <button class="btn-secondary" onclick="saveSnapshot()">Save State</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="sec-features">
+            <div class="section-header" onclick="toggleSection('sec-features')">
+                <h3>Tracked Features (CFG_)</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <div id="featureList" class="data-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-changelog" class="tab-content">
+        <button class="btn-success" onclick="openDashboard()" style="margin-bottom: 15px;">📂 OPEN LOG DASHBOARD</button>
+        
+        <div class="section">
+            <div class="section-content" style="display: block;">
+                <label style="font-size: 12px; font-weight: bold; margin-bottom: 5px; display: block;">Add Log Entry:</label>
+                <textarea id="newEntryText" placeholder="What did you change?"></textarea>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div>
+                        <input type="checkbox" id="autosaveCheck" checked> 
+                        <label for="autosaveCheck" style="cursor:pointer; font-size: 12px;">Autosave Design</label>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="sendLogEntry()">Save Entry</button>
+            </div>
+        </div>
+
+        <div class="section collapsed" id="sec-milestone">
+            <div class="section-header" onclick="toggleSection('sec-milestone')">
+                <h3>Utilities</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="milestoneReason" placeholder="Milestone Name (e.g. 'Final Draft')" style="margin-bottom:5px;">
+                    <button class="btn-secondary" onclick="createMilestone()">Archive & Start New Log</button>
+                </div>
+                <button class="btn-secondary" onclick="exportLog()">Export to Text File</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Edit Parameter</h3>
+            <div class="modal-label">Name</div>
+            <input type="text" id="editModalName">
+            <div class="modal-label">Comment</div>
+            <input type="text" id="editModalComment">
+            <input type="hidden" id="editModalOldName">
+            <div class="modal-actions">
+                <button class="modal-btn btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button class="modal-btn btn-save" onclick="saveEditModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="liveutils_script.js"></script>
+</body>
+</html>

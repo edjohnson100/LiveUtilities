@@ -1,0 +1,272 @@
+// --- GLOBAL STATE ---
+let lastReceivedData = null;
+let searchQuery = "";
+let statusTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Theme Initialization
+    const toggleSwitch = document.getElementById('theme-checkbox');
+    const savedTheme = localStorage.getItem('edj_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    toggleSwitch.checked = (savedTheme === 'dark');
+    toggleSwitch.addEventListener('change', e => {
+        const newTheme = e.target.checked ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('edj_theme', newTheme);
+    });
+
+    // 2. Tab Memory
+    const savedTab = localStorage.getItem('edj_active_tab') || 'tab-params';
+    switchTab(savedTab);
+
+    // 3. Listeners
+    document.getElementById('favFilterCheck').addEventListener('change', e => {
+        if (lastReceivedData) renderUI(lastReceivedData);
+    });
+    document.getElementById('searchInput').addEventListener('input', e => {
+        searchQuery = e.target.value.toLowerCase();
+        if (lastReceivedData) renderUI(lastReceivedData);
+    });
+
+    waitForFusion();
+});
+
+// --- UI NAVIGATION ---
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    // Find matching button
+    const btns = document.querySelectorAll('.tab-btn');
+    for(let btn of btns) {
+        if(btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+            break;
+        }
+    }
+
+    // --- NEW DYNAMIC TITLE LOGIC ---
+    const titleEl = document.getElementById('appTitle');
+    if (titleEl) {
+        if (tabId === 'tab-params') titleEl.innerText = 'LIVE PARAMETERS';
+        else if (tabId === 'tab-config') titleEl.innerText = 'LIVE CONFIG';
+        else if (tabId === 'tab-changelog') titleEl.innerText = 'CHANGELOG SIDECAR';
+    }
+    
+    localStorage.setItem('edj_active_tab', tabId);
+}
+
+function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+}
+
+// --- FUSION BRIDGE ---
+
+// 1. Declare the handler globally FIRST so Python never hits a ReferenceError
+window.fusionJavaScriptHandler = {
+    handle: function(action, data) {
+        try {
+            const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+            if (action === 'update_ui') renderUI(parsed);
+            else if (action === 'notification') showStatus(parsed);
+        } catch (e) { console.error(e); }
+        return "OK";
+    }
+};
+
+// 2. Then wait for the adsk object to initialize to send the refresh command
+function waitForFusion() {
+    if (window.adsk) {
+        // Optional modern event listener binding
+        if (window.adsk.fusion && window.adsk.fusion.on) {
+            window.adsk.fusion.on('update_ui', (jsonStr) => renderUI(JSON.parse(jsonStr)));
+        }
+        // Ask Python for the initial data payload
+        refreshData(); 
+    } else {
+        setTimeout(waitForFusion, 500);
+    }
+}
+
+function sendToFusion(action, data = {}) {
+    data.action = action;
+    try {
+        const json = JSON.stringify(data);
+        if (window.adsk && window.adsk.fusion && window.adsk.fusion.sendCommand) {
+            window.adsk.fusion.sendCommand(json);
+        } else if (window.adsk && window.adsk.fusionSendData) {
+            window.adsk.fusionSendData('send', json);
+        }
+    } catch (e) {}
+}
+
+function refreshData() { sendToFusion('refresh_data'); }
+
+// --- STATUS NOTIFICATIONS ---
+function showStatus(data) {
+    const box = document.getElementById('statusMessage');
+    box.innerText = data.message;
+    box.className = 'status-box ' + (data.type || 'info');
+    
+    if (statusTimeout) clearTimeout(statusTimeout);
+    
+    if (data.type === 'success' && data.action === 'create_param') {
+        document.getElementById('new_name').value = '';
+        document.getElementById('new_expr').value = '';
+        document.getElementById('new_comm').value = '';
+    }
+
+    statusTimeout = setTimeout(() => { box.style.display = 'none'; }, 3000);
+}
+
+// --- RENDER MASTER UI ---
+function renderUI(data) {
+    lastReceivedData = data;
+    document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
+
+    renderParameters(data.parameters || []);
+    renderConfigs(data.configs || {}, data.active_config);
+    renderFeatures(data.features || []);
+}
+
+function renderParameters(params) {
+    const container = document.getElementById('paramList');
+    const favOnly = document.getElementById('favFilterCheck').checked;
+    container.innerHTML = '';
+
+    let visible = params;
+    if (favOnly) visible = visible.filter(p => p.isFavorite);
+    if (searchQuery) visible = visible.filter(p => p.name.toLowerCase().includes(searchQuery));
+
+    if (visible.length === 0) {
+        container.innerHTML = `<div class="empty-state">No matching parameters found.</div>`;
+        return;
+    }
+
+    visible.forEach(p => {
+        const star = p.isFavorite ? '#ff9e3b' : '#555';
+        const safeComm = p.comment ? p.comment.replace(/'/g, "\\'") : "";
+        
+        container.innerHTML += `
+            <div class="data-row">
+                <div class="row-label" title="${p.name}\n${safeComm}">
+                    <span style="color:${star}; cursor:pointer; margin-right:4px;" onclick="sendToFusion('toggle_favorite', {name: '${p.name}'})">★</span>
+                    ${p.name}
+                </div>
+                <div class="row-controls">
+                    <input type="text" value="${p.expression}" style="width: 80px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
+                    <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', '${safeComm}')">✎</button>
+                    <button class="action-btn del-btn" title="Delete" onclick="deleteParam('${p.name}')">×</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function renderConfigs(configs, activeConfig) {
+    const container = document.getElementById('configList');
+    const names = Object.keys(configs);
+    container.innerHTML = '';
+
+    if (names.length === 0) {
+        container.innerHTML = '<div class="empty-state">No snapshots saved.</div>';
+        return;
+    }
+
+    names.forEach(name => {
+        const isActive = (name === activeConfig) ? 'style="border-color: #ff9e3b; color: #ff9e3b;"' : '';
+        container.innerHTML += `
+            <div class="data-row">
+                <button class="btn-secondary" style="flex-grow:1; text-align:left; margin-right:5px;" ${isActive} onclick="sendToFusion('load_snapshot', {config_name: '${name}'})">${name}</button>
+                <div class="row-controls">
+                    <button class="action-btn" title="Update" onclick="if(confirm('Update ${name}?')) sendToFusion('save_snapshot', {config_name: '${name}'})">💾</button>
+                    <button class="action-btn del-btn" title="Delete" onclick="if(confirm('Delete ${name}?')) sendToFusion('delete_snapshot', {config_name: '${name}'})">×</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function renderFeatures(features) {
+    const container = document.getElementById('featureList');
+    container.innerHTML = '';
+    
+    if (features.length === 0) {
+         container.innerHTML = '<div class="empty-state">No CFG_ features found.</div>';
+         return;
+    }
+
+    features.forEach(f => {
+        const checked = !f.isSuppressed ? 'checked' : '';
+        container.innerHTML += `
+            <div class="data-row">
+                <span class="row-label">${f.name}</span>
+                <label class="theme-switch" style="transform: scale(0.8); margin-right: 5px;">
+                    <input type="checkbox" ${checked} onchange="sendToFusion('toggle_feature', {name: '${f.name}', is_suppressed: !this.checked})">
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+        `;
+    });
+}
+
+// --- ACTION DISPATCHERS ---
+
+// Parameters
+function createParam() {
+    const unitSel = document.getElementById('new_unit').value;
+    const unit = (unitSel === 'OTHER') ? document.getElementById('custom_unit').value : (unitSel === 'TEXT' ? '' : unitSel);
+    sendToFusion('create_param', {
+        name: document.getElementById('new_name').value.trim(),
+        unit: unit,
+        expression: document.getElementById('new_expr').value.trim(),
+        comment: document.getElementById('new_comm').value.trim()
+    });
+}
+function deleteParam(name) { if(confirm(`Delete parameter '${name}'?`)) sendToFusion('delete_param', {name: name}); }
+function toggleCustomUnit(sel) { document.getElementById('custom_unit').style.display = (sel.value === 'OTHER') ? 'block' : 'none'; }
+
+// Modal Logic
+function openEditModal(name, comm) {
+    document.getElementById('editModalName').value = name;
+    document.getElementById('editModalOldName').value = name;
+    document.getElementById('editModalComment').value = comm === 'null' ? '' : comm;
+    document.getElementById('editModal').style.display = 'flex';
+}
+function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+function saveEditModal() {
+    sendToFusion('update_attributes', {
+        old_name: document.getElementById('editModalOldName').value,
+        new_name: document.getElementById('editModalName').value,
+        comment: document.getElementById('editModalComment').value
+    });
+    closeEditModal();
+}
+
+// Config
+function saveSnapshot() {
+    const name = document.getElementById('newConfigName').value.trim();
+    if(name) {
+        sendToFusion('save_snapshot', {config_name: name});
+        document.getElementById('newConfigName').value = '';
+    }
+}
+
+// Changelog
+function sendLogEntry() {
+    const text = document.getElementById('newEntryText').value;
+    if(text) {
+        sendToFusion('add_entry', { note: text, autosave: document.getElementById('autosaveCheck').checked });
+        document.getElementById('newEntryText').value = '';
+    }
+}
+function createMilestone() {
+    const reason = document.getElementById('milestoneReason').value;
+    if(reason) {
+        sendToFusion('create_milestone', { reason: reason });
+        document.getElementById('milestoneReason').value = '';
+    }
+}
+function exportLog() { sendToFusion('export_log'); }
+function openDashboard() { sendToFusion('refresh_dashboard'); }
