@@ -1,12 +1,12 @@
 # LiveUtilities
-**A unified, persistent palette for real-time management of User Parameters, Configuration Snapshots, and Design Changelogs.**
+**A unified, persistent palette for real-time management of User Parameters, Configuration Snapshots, and Design Changelogs for Autodesk Fusion.**
 
 <img src="LiveUtilitiesAppIcon.png" width="300">
 
 ## Introduction: The "Why" and "What"
 
 We’ve all been there:
-* You are tweaking a design for a 3D print. You open `Modify > Change Parameters`. You change a value. You hit Enter. The modal box closes. You check the fit. It’s wrong. You open the box again... **Lather. Rinse. Repeat.**
+* You are tweaking a Fusion design for a 3D print. You open `Modify > Change Parameters`. You change a value. You hit Enter. The modal box closes. You check the fit. It’s wrong. You open the box again... **Lather. Rinse. Repeat.**
 * You open a Fusion design you haven't touched in six months named `MyWidget_Final_v42`. You stare at the browser tree and wonder: *"Why did I add that chamfer? Is this actually the final version?"*
 
 Fusion’s native dialogs are functional, but they are often modal (blocking your view) and lack the space for saving iterative states or detailed historical context. 
