@@ -146,17 +146,22 @@ function renderParameters(params) {
 
     visible.forEach(p => {
         const star = p.isFavorite ? '#ff9e3b' : '#555';
-        const safeComm = p.comment ? p.comment.replace(/'/g, "\\'") : "";
         
+        // HTML-safe version for the hover tooltip
+        const safeCommHTML = p.comment ? p.comment.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : "";
+        
+        // URL-encoded version for safe JavaScript injection
+        const encodedComm = encodeURIComponent(p.comment || "");
+
         container.innerHTML += `
             <div class="data-row">
-                <div class="row-label" title="${p.name}\n${safeComm}">
+                <div class="row-label" title="${p.name}\n${safeCommHTML}">
                     <span style="color:${star}; cursor:pointer; margin-right:4px;" onclick="sendToFusion('toggle_favorite', {name: '${p.name}'})">★</span>
                     ${p.name}
                 </div>
                 <div class="row-controls">
                     <input type="text" value="${p.expression}" style="width: 80px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
-                    <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', '${safeComm}')">✎</button>
+                    <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', decodeURIComponent('${encodedComm}'))">✎</button>
                     <button class="action-btn del-btn" title="Delete" onclick="deleteParam('${p.name}')">×</button>
                 </div>
             </div>
@@ -176,12 +181,19 @@ function renderConfigs(configs, activeConfig) {
 
     names.forEach(name => {
         const isActive = (name === activeConfig) ? 'style="border-color: #ff9e3b; color: #ff9e3b;"' : '';
+        
+        // Safely escape the display name for the visual button text
+        const safeNameDisplay = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // URL-encode the raw name for 100% safe JavaScript injection
+        const encodedName = encodeURIComponent(name);
+
         container.innerHTML += `
             <div class="data-row">
-                <button class="btn-secondary" style="flex-grow:1; text-align:left; margin-right:5px;" ${isActive} onclick="sendToFusion('load_snapshot', {config_name: '${name}'})">${name}</button>
+                <button class="btn-secondary" style="flex-grow:1; text-align:left; margin-right:5px;" ${isActive} onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">${safeNameDisplay}</button>
                 <div class="row-controls">
-                    <button class="action-btn" title="Update" onclick="if(confirm('Update ${name}?')) sendToFusion('save_snapshot', {config_name: '${name}'})">💾</button>
-                    <button class="action-btn del-btn" title="Delete" onclick="if(confirm('Delete ${name}?')) sendToFusion('delete_snapshot', {config_name: '${name}'})">×</button>
+                    <button class="action-btn" title="Update" onclick="if(confirm('Update ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('save_snapshot', {config_name: decodeURIComponent('${encodedName}')})">💾</button>
+                    <button class="action-btn del-btn" title="Delete" onclick="if(confirm('Delete ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('delete_snapshot', {config_name: decodeURIComponent('${encodedName}')})">×</button>
                 </div>
             </div>
         `;
