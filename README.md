@@ -13,6 +13,16 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 
 **LiveUtilities** solves this by combining three powerful tools—LiveParameters, LiveConfig, and Changelog Sidecar—into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and history in real-time.
 
+---
+
+## ✨ What's New in v1.2.0
+
+* **The "Orphaned Parameter" Safety Net:** Have you ever renamed a sketch dimension (e.g., `SlotDepth=15`) on the fly, only to accidentally uncheck its "favorite" star later? Normally, Fusion drops it from the autocomplete index and buries it. LiveUtilities now automatically tracks **any** renamed Model Parameter. Even if you unfavorite it or delete the sketch it was attached to, the parameter stays pinned in your LiveUtilities sidebar under "Model Parameters." You can click the star in the UI to instantly register it back into Fusion's type-ahead index!
+* **Unified UI:** A seamless, tabbed interface to switch between Parameters, Configs, and Changelogs. Includes a native Dark/Light mode toggle.
+* **Bulletproof Data Handling:** Safely use dimensional characters (like `1/4" Birch`) in your parameter comments and snapshot names without breaking the backend database.
+
+---
+
 ## Installation
 
 ### Method: Manual Installation (Scripts & Add-Ins)
@@ -31,6 +41,7 @@ Currently, this add-in requires a quick manual installation.
 ## Using LiveUtilities
 
 ### The Global Interface
+
 Clicking the Live Utilities button opens a persistent palette docked to the right side of your Fusion workspace. 
 * **Tabbed Navigation:** Seamlessly switch between Parameters, Config, and Changelog tools.
 * **Theme Toggle:** Switch between Light and Dark mode using the toggle in the header to match your Fusion UI.
@@ -43,6 +54,7 @@ Keep your parameters docked on the side while you design. Tweak dimensions and s
 
 * **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately.
 * **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch to hide everything except your favorited parameters.
+* **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters."
 * **Creation:** Expand the "Add Parameter" section to create new ones on the fly. Supports Name, Unit (dropdown + custom), Expression, and Comments. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
 * **Rename & Edit Comments:** Click the **Pencil (✎)** icon next to a parameter to safely rename it or update its comment.
 * **Delete:** Click the **X** icon to remove a parameter. The add-in will prevent deletion if the parameter is currently in use by the model.
@@ -79,6 +91,14 @@ A dedicated space to log your thoughts, decisions, and milestones. Because the l
     * *Pro Tip:* Drag the browser tab out to create a separate floating window. Resize it into a narrow "Sidecar" next to your Fusion window or move it to a second monitor.
     * *Auto-Refresh & Smart Scroll:* As you add entries in Fusion, the dashboard updates automatically and remembers your scroll position. Adjust the sync interval via the slider at the top of the dashboard.
 
+---
+
+## 🧰 Companion Tool: AttributeNukerPlus
+If you ever need to surgically clean up hidden legacy JSON attributes from your Fusion files (especially useful when uninstalling old add-ins or resetting corrupted metadata), check out my standalone companion utility, **AttributeNukerPlus**. It provides a safe, readable table interface to selectively delete keys or nuke entire attributes.
+👉 **[Download AttributeNukerPlus Here](https://github.com/edjohnson100/AttributeNukerPlus)**
+
+---
+
 ## Tech Stack
 
 For the fellow coders and makers out there, here is how LiveUtilities was built:
@@ -92,7 +112,7 @@ For the fellow coders and makers out there, here is how LiveUtilities was built:
 
 * **Developer:** Ed Johnson ([Making With An EdJ](https://www.youtube.com/@makingwithanedj))
 * **AI Assistance:** Developed with coding assistance from Google's Gemini 3.1 Pro model.
-* **Icons:** "Lucy in the Sidecar" artwork generated via [Artistly](https://artistly.ai/) and enhamced with Gemini Nano Banana.
+* **Icons:** "Lucy in the Sidecar" artwork generated via [Artistly](https://artistly.ai/) and enhanced with Nano Banana 2.
 * **Lucy (The Cavachon Puppy):**
   ***Chief Wellness Officer & Director of Mandatory Breaks***
   * Thank you for ensuring I maintained healthy circulation and preventing Repetitive Strain Injury one fetch session at a time by interrupting my deep coding sessions.
