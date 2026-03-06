@@ -131,42 +131,59 @@ function renderUI(data) {
 }
 
 function renderParameters(params) {
-    const container = document.getElementById('paramList');
+    const userContainer = document.getElementById('userParamList');
+    const modelContainer = document.getElementById('modelParamList');
     const favOnly = document.getElementById('favFilterCheck').checked;
-    container.innerHTML = '';
+    
+    userContainer.innerHTML = '';
+    modelContainer.innerHTML = '';
 
     let visible = params;
     if (favOnly) visible = visible.filter(p => p.isFavorite);
     if (searchQuery) visible = visible.filter(p => p.name.toLowerCase().includes(searchQuery));
 
-    if (visible.length === 0) {
-        container.innerHTML = `<div class="empty-state">No matching parameters found.</div>`;
-        return;
+    // Split into our two categories using the flag from Python
+    const userParams = visible.filter(p => p.is_user_param);
+    const modelParams = visible.filter(p => !p.is_user_param);
+
+    // Render User Params
+    if (userParams.length === 0) {
+        userContainer.innerHTML = `<div class="empty-state">No matching user parameters.</div>`;
+    } else {
+        userParams.forEach(p => userContainer.innerHTML += createParamRow(p));
     }
 
-    visible.forEach(p => {
-        const star = p.isFavorite ? '#ff9e3b' : '#555';
-        
-        // HTML-safe version for the hover tooltip
-        const safeCommHTML = p.comment ? p.comment.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : "";
-        
-        // URL-encoded version for safe JavaScript injection
-        const encodedComm = encodeURIComponent(p.comment || "");
+    // Render Model Params
+    if (modelParams.length === 0) {
+        modelContainer.innerHTML = `<div class="empty-state">No matching model parameters.</div>`;
+    } else {
+        modelParams.forEach(p => modelContainer.innerHTML += createParamRow(p));
+    }
+}
 
-        container.innerHTML += `
-            <div class="data-row">
-                <div class="row-label" title="${p.name}\n${safeCommHTML}">
-                    <span style="color:${star}; cursor:pointer; margin-right:4px;" onclick="sendToFusion('toggle_favorite', {name: '${p.name}'})">★</span>
-                    ${p.name}
-                </div>
-                <div class="row-controls">
-                    <input type="text" value="${p.expression}" style="width: 80px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
-                    <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', decodeURIComponent('${encodedComm}'))">✎</button>
-                    <button class="action-btn del-btn" title="Delete" onclick="deleteParam('${p.name}')">×</button>
-                </div>
+// Helper function to build the HTML string for a single parameter row
+function createParamRow(p) {
+    const star = p.isFavorite ? '#ff9e3b' : '#555';
+    const safeCommHTML = p.comment ? p.comment.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : "";
+    const encodedComm = encodeURIComponent(p.comment || "");
+
+    const delBtnHtml = p.is_user_param 
+        ? `<button class="action-btn del-btn" title="Delete" onclick="deleteParam('${p.name}')">×</button>`
+        : `<button class="action-btn" title="Sketch/Feature parameters cannot be deleted here" disabled style="opacity: 0.3; cursor: not-allowed;">×</button>`;
+
+    return `
+        <div class="data-row">
+            <div class="row-label" title="${p.name}\n${safeCommHTML}">
+                <span style="color:${star}; cursor:pointer; margin-right:4px;" onclick="sendToFusion('toggle_favorite', {name: '${p.name}'})">★</span>
+                ${p.name}
             </div>
-        `;
-    });
+            <div class="row-controls">
+                <input type="text" value="${p.expression}" style="width: 80px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
+                <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', decodeURIComponent('${encodedComm}'))">✎</button>
+                ${delBtnHtml}
+            </div>
+        </div>
+    `;
 }
 
 function renderConfigs(configs, activeConfig) {

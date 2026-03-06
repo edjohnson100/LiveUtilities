@@ -29,30 +29,19 @@ def scan_all():
 
     # 1. PARAMETERS (Merged from live_logic and config_logic)
     param_data = []
-    for param in design.allParameters:
-        # Fusion Quirk Fix: Orphaned model parameters sometimes spoof their classType.
-        # The only foolproof check is if it actually exists in the UserParameters collection.
-        is_user = design.userParameters.itemByName(param.name) is not None
-        is_fav = getattr(param, "isFavorite", False)
-        
-        # Check if the name deviates from the standard "d123" format
-        is_renamed = not re.match(r'^d\d+$', param.name) if not is_user else False
-        
-        # Keep User Parameters, and any Model Parameter that is Favorited OR Renamed
-        if is_user or is_fav or is_renamed:
-            safe_val = 0
-            try: safe_val = param.value
-            except: pass
+    for param in design.userParameters:
+        safe_val = 0
+        try: safe_val = param.value
+        except: pass
 
-            param_data.append({
-                "name": param.name,
-                "expression": param.expression,
-                "value": safe_val, 
-                "unit": param.unit,
-                "comment": param.comment, 
-                "isFavorite": is_fav,
-                "is_user_param": is_user 
-            })
+        param_data.append({
+            "name": param.name,
+            "expression": param.expression,
+            "value": safe_val, 
+            "unit": param.unit,
+            "comment": param.comment, 
+            "isFavorite": getattr(param, "isFavorite", False)
+        })
 
     # 2. TIMELINE FEATURES & GROUPS (CFG_)
     feature_data = []
@@ -122,17 +111,8 @@ def save_snapshot(config_name):
     
     root = design.rootComponent 
 
-    # Grab current state of all tracked parameters
-    params = {}
-    for p in design.allParameters:
-        # Use the foolproof collection check here as well
-        is_user = design.userParameters.itemByName(p.name) is not None
-        is_fav = getattr(p, "isFavorite", False)
-        is_renamed = not re.match(r'^d\d+$', p.name) if not is_user else False
-        
-        if is_user or is_fav or is_renamed:
-            params[p.name] = p.expression
-
+    # Grab current state
+    params = {p.name: p.expression for p in design.userParameters}
     feats = {}
     
     for f in root.features:
@@ -200,7 +180,7 @@ def apply_snapshot(config_name):
         # 1. Apply Parameters
         saved_params = snapshot.get("params", {})
         for name, expr in saved_params.items():
-            p = design.allParameters.itemByName(name)
+            p = design.userParameters.itemByName(name)
             if p: p.expression = expr
             
         # 2. Apply Timeline Features
@@ -239,7 +219,7 @@ def update_parameter(name, expression):
     try:
         app = adsk.core.Application.get()
         design = app.activeProduct
-        param = design.allParameters.itemByName(name)
+        param = design.userParameters.itemByName(name)
         
         if not param:
             return json.dumps({"message": "Parameter not found", "type": "error"})
@@ -260,7 +240,7 @@ def toggle_favorite(name):
     try:
         app = adsk.core.Application.get()
         design = app.activeProduct
-        param = design.allParameters.itemByName(name)
+        param = design.userParameters.itemByName(name)
         if param:
             param.isFavorite = not param.isFavorite
     except:

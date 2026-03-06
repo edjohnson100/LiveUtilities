@@ -43,6 +43,12 @@ Output/
 .env.*
 !.env.example
 
+# ----------------------
+# 6. Other Misc Files
+# ----------------------
+# Affiity Desktop
+*.af
+
 # Allow the "Installers" folder itself...
 !Installers/
 
