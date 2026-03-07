@@ -74,7 +74,7 @@ The missing "Configuration Manager" for Fusion. Save specific combinations of pa
     4. You will now see a toggle switch for that feature in the palette, and its state will be saved in your Snapshots!
 * **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it.
 
-> **Sample File:** Download `Sink_Strainer_Live_Config_Demo.f3d` from the [Releases > Assets](https://github.com/edjohnson100/LiveConfig/releases) section to test drive pre-configured snapshots and `CFG_` timeline groups.
+> **Sample File:** Download `Sink_Strainer_LiveUtilities_Demo.f3d` from the [Releases > Assets](https://github.com/edjohnson100/LiveConfig/releases) section to test drive pre-configured snapshots and `CFG_` timeline groups.
 
 ---
 
