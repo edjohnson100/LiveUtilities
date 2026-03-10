@@ -24,6 +24,8 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 
 * **Persistent UI Memory:** Your selected theme is now saved directly to your local Fusion workspace cache, ensuring the add-in automatically loads your preferred layout every time you boot up.
 
+* **Auto-SortingUI:** Parameters and Configuration Snapshots now automatically sort themselves alphabetically (A-Z) in the palette, making it much easier to quickly navigate and find what you need in complex designs.
+
 ---
 ## ✨ What's New in v1.3.0
 
