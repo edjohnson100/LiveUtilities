@@ -5,15 +5,10 @@ let statusTimeout;
 
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Theme Initialization
-    const toggleSwitch = document.getElementById('theme-checkbox');
     const savedTheme = localStorage.getItem('edj_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    toggleSwitch.checked = (savedTheme === 'dark');
-    toggleSwitch.addEventListener('change', e => {
-        const newTheme = e.target.checked ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('edj_theme', newTheme);
-    });
+    const themeSelector = document.getElementById('themeSelector');
+    if (themeSelector) themeSelector.value = savedTheme;
 
     // 2. Tab Memory
     const savedTab = localStorage.getItem('edj_active_tab') || 'tab-params';
@@ -30,6 +25,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     waitForFusion();
 });
+
+// --- THEME NAVIGATION ---
+function changeTheme() {
+    const theme = document.getElementById('themeSelector').value;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('edj_theme', theme);
+}
 
 // --- UI NAVIGATION ---
 function switchTab(tabId) {

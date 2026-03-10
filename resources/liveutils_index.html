@@ -13,10 +13,20 @@
         
         <div style="display: flex; align-items: center; gap: 15px;">
             <button class="icon-btn" onclick="refreshData()" title="Rescan Model" style="padding: 4px 8px; font-size: 14px;">↻</button>
-            <label class="theme-switch" title="Toggle Light/Dark Mode">
-                <input type="checkbox" id="theme-checkbox" checked>
-                <span class="theme-slider"></span>
-            </label>
+            <select id="themeSelector" onchange="changeTheme()" title="Select Theme" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); cursor: pointer; outline: none; margin-top: 5px;">
+                <optgroup label="Light Themes">
+                    <option value="light">Light (Default)</option>
+                    <option value="gruvbox-light">Gruvbox Light</option>
+                    <option value="sepia">Warm Sepia</option>
+                    <option value="solarized-light">Solarized Light</option>
+                </optgroup>
+                <optgroup label="Dark Themes">
+                    <option value="dark">Classic Dark</option>
+                    <option value="ocean">Ocean Blue</option>
+                    <option value="hacker">Hacker Green</option>
+                    <option value="solarized">Solarized Dark</option>
+                </optgroup>
+            </select>
         </div>
     </div>
 

@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.3.0  
+**Version:** 1.3.1  
 **Author:** Ed Johnson (Making With An EdJ)
 
 LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, and batch exporting into a single, clean interface.
@@ -18,7 +18,13 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 **LiveUtilities** solves this by combining three powerful tools—LiveParameters, LiveConfig, and Changelog Sidecar—into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and history in real-time.
 
 ---
+## ✨ What's New in v1.3.1
 
+* **Expanded Theme Engine:** We ditched the basic Light/Dark switch for a persistent, multi-theme selector. You can now customize your LiveUtilities palette with developer-favorite color profiles including Ocean Blue, Hacker Green, Warm Sepia, Solarized (Light & Dark), and Gruvbox Light.
+
+* **Persistent UI Memory:** Your selected theme is now saved directly to your local Fusion workspace cache, ensuring the add-in automatically loads your preferred layout every time you boot up.
+
+---
 ## ✨ What's New in v1.3.0
 
 * **Config Auto-Detect & "Dirty" States:** The Config tab is now context-aware! The active snapshot highlights in green. If you tweak a parameter, it instantly turns red and flags as "(Modified)". Even better, if you manually adjust parameters to match a different saved state, the add-in automatically detects the match and highlights that configuration.
