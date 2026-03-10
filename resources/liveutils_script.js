@@ -109,6 +109,9 @@ function showStatus(data) {
     box.innerText = data.message;
     box.className = 'status-box ' + (data.type || 'info');
     
+    // Clear the inline style from the previous timeout so the CSS class takes over
+    box.style.display = '';
+
     if (statusTimeout) clearTimeout(statusTimeout);
     
     if (data.type === 'success' && data.action === 'create_param') {
@@ -126,7 +129,7 @@ function renderUI(data) {
     document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
 
     renderParameters(data.parameters || []);
-    renderConfigs(data.configs || {}, data.active_config);
+    renderConfigs(data.configs || {}, data.active_config, data.is_dirty); // Added data.is_dirty here
     renderFeatures(data.features || []);
 }
 
@@ -173,12 +176,12 @@ function createParamRow(p) {
 
     return `
         <div class="data-row">
-            <div class="row-label" title="${p.name}\n${safeCommHTML}">
+            <div class="row-label" title="${p.name}\n${safeCommHTML}" style="flex: 0 1 40%; margin-right: 5px;">
                 <span style="color:${star}; cursor:pointer; margin-right:4px;" onclick="sendToFusion('toggle_favorite', {name: '${p.name}'})">★</span>
                 ${p.name}
             </div>
-            <div class="row-controls">
-                <input type="text" value="${p.expression}" style="width: 80px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
+            <div class="row-controls" style="flex: 1 1 70%;">
+                <input type="text" value="${p.expression}" style="flex-grow: 1; width: 50px; min-width: 60px;" onchange="sendToFusion('update_param', {name: '${p.name}', value: this.value})">
                 <button class="action-btn" title="Edit" onclick="openEditModal('${p.name}', decodeURIComponent('${encodedComm}'))">✎</button>
                 ${delBtnHtml}
             </div>
@@ -186,7 +189,7 @@ function createParamRow(p) {
     `;
 }
 
-function renderConfigs(configs, activeConfig) {
+function renderConfigs(configs, activeConfig, isDirty) {
     const container = document.getElementById('configList');
     const names = Object.keys(configs);
     container.innerHTML = '';
@@ -197,18 +200,30 @@ function renderConfigs(configs, activeConfig) {
     }
 
     names.forEach(name => {
-        const isActive = (name === activeConfig) ? 'style="border-color: #ff9e3b; color: #ff9e3b;"' : '';
+        // Start with the base layout styling
+        let combinedStyle = 'flex-grow:1; text-align:left; margin-right:5px;';
+        let dirtyIndicator = '';
         
-        // Safely escape the display name for the visual button text
+        // Append the Green/Red styling based on the dirty flag
+        if (name === activeConfig) {
+            if (isDirty) {
+                combinedStyle += ' border-color: #dc3545; color: #dc3545;'; // Red for dirty
+                dirtyIndicator = '<span style="font-size: 10px; opacity: 0.8; margin-left: 5px;">(Modified)</span>';
+            } else {
+                combinedStyle += ' border-color: #28a745; color: #28a745;'; // Green for clean
+            }
+        }
+        
         const safeNameDisplay = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
-        // URL-encode the raw name for 100% safe JavaScript injection
         const encodedName = encodeURIComponent(name);
 
         container.innerHTML += `
             <div class="data-row">
-                <button class="btn-secondary" style="flex-grow:1; text-align:left; margin-right:5px;" ${isActive} onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">${safeNameDisplay}</button>
+                <button class="btn-secondary" style="${combinedStyle}" onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">
+                    ${safeNameDisplay}${dirtyIndicator}
+                </button>
                 <div class="row-controls">
+                    <button class="action-btn" title="Rename" onclick="renameSnapshot(decodeURIComponent('${encodedName}'))">✎</button>
                     <button class="action-btn" title="Update" onclick="if(confirm('Update ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('save_snapshot', {config_name: decodeURIComponent('${encodedName}')})">💾</button>
                     <button class="action-btn del-btn" title="Delete" onclick="if(confirm('Delete ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('delete_snapshot', {config_name: decodeURIComponent('${encodedName}')})">×</button>
                 </div>
@@ -244,15 +259,26 @@ function renderFeatures(features) {
 
 // Parameters
 function createParam() {
+    const nameField = document.getElementById('new_name').value.trim();
+    const exprField = document.getElementById('new_expr').value.trim();
+
+    // Prevent submission if required fields are empty
+    if (!nameField || !exprField) {
+        showStatus({ message: "Name and Expression are required.", type: "error" });
+        return;
+    }
+
     const unitSel = document.getElementById('new_unit').value;
     const unit = (unitSel === 'OTHER') ? document.getElementById('custom_unit').value : (unitSel === 'TEXT' ? '' : unitSel);
+    
     sendToFusion('create_param', {
-        name: document.getElementById('new_name').value.trim(),
+        name: nameField,
         unit: unit,
-        expression: document.getElementById('new_expr').value.trim(),
+        expression: exprField,
         comment: document.getElementById('new_comm').value.trim()
     });
 }
+
 function deleteParam(name) { if(confirm(`Delete parameter '${name}'?`)) sendToFusion('delete_param', {name: name}); }
 function toggleCustomUnit(sel) { document.getElementById('custom_unit').style.display = (sel.value === 'OTHER') ? 'block' : 'none'; }
 
@@ -282,6 +308,13 @@ function saveSnapshot() {
     }
 }
 
+function renameSnapshot(oldName) {
+    const newName = prompt(`Rename snapshot '${oldName}' to:`, oldName);
+    if (newName && newName.trim() !== '' && newName !== oldName) {
+        sendToFusion('rename_snapshot', { old_name: oldName, new_name: newName.trim() });
+    }
+}
+
 // Changelog
 function sendLogEntry() {
     const text = document.getElementById('newEntryText').value;
@@ -298,4 +331,13 @@ function createMilestone() {
     }
 }
 function exportLog() { sendToFusion('export_log'); }
+
+function exportConfigs() {
+    sendToFusion('export_configs', {
+        step: document.getElementById('expSTEP').checked,
+        stl: document.getElementById('expSTL').checked,
+        '3mf': document.getElementById('exp3MF').checked
+    });
+}
+
 function openDashboard() { sendToFusion('refresh_dashboard'); }

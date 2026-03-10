@@ -124,7 +124,7 @@
 
         <div class="section collapsed" id="sec-milestone">
             <div class="section-header" onclick="toggleSection('sec-milestone')">
-                <h3>Utilities</h3>
+                <h3>Milestones and Utilities</h3>
                 <span class="arrow">▼</span>
             </div>
             <div class="section-content">
@@ -132,7 +132,17 @@
                     <input type="text" id="milestoneReason" placeholder="Milestone Name (e.g. 'Final Draft')" style="margin-bottom:5px;">
                     <button class="btn-secondary" onclick="createMilestone()">Archive & Start New Log</button>
                 </div>
-                <button class="btn-secondary" onclick="exportLog()">Export to Text File</button>
+                <button class="btn-secondary" style="margin-bottom: 15px;" onclick="exportLog()">Export Changelog to File</button>
+
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+                    <label style="font-size: 11px; font-weight: bold; color: var(--text-sub); margin-bottom: 5px; display: block;">BATCH EXPORT CONFIGS</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 12px;">
+                        <label><input type="checkbox" id="expSTEP" checked> STEP</label>
+                        <label><input type="checkbox" id="expSTL" checked> STL</label>
+                        <label><input type="checkbox" id="exp3MF" checked> 3MF</label>
+                    </div>
+                    <button class="btn-secondary" onclick="exportConfigs()">Export All Configs...</button>
+                </div>
             </div>
         </div>
     </div>

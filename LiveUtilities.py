@@ -105,7 +105,11 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
             # --- PARAMETER ROUTING ---
             if action == 'update_param':
                 payload = core_logic.update_parameter(data.get('name'), data.get('value'))
-                if palette: palette.sendInfoToHTML('notification', payload)
+                if palette: 
+                    palette.sendInfoToHTML('notification', payload)
+                    # --- NEW: Redraw the UI so the dirty flag updates ---
+                    if json.loads(payload).get('type') == 'success':
+                        palette.sendInfoToHTML('update_ui', payload)
                 
             elif action == 'update_attributes':
                 payload = core_logic.update_parameter_attributes(data.get('old_name'), data.get('new_name'), data.get('comment'))
@@ -122,7 +126,9 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 payload = core_logic.create_parameter(data.get('name'), data.get('unit'), data.get('expression'), data.get('comment'))
                 if palette: 
                     palette.sendInfoToHTML('notification', payload)
-                    palette.sendInfoToHTML('update_ui', payload)
+                    # FIX: Only redraw the UI if the parameter was actually created
+                    if json.loads(payload).get('type') == 'success':
+                        palette.sendInfoToHTML('update_ui', payload)
 
             elif action == 'delete_param':
                 payload = core_logic.delete_parameter(data.get('name'))
@@ -132,6 +138,15 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                         palette.sendInfoToHTML('update_ui', payload)
 
             # --- CONFIG ROUTING ---
+            elif action == 'export_configs':
+                payload = core_logic.batch_export_configs(data.get('step'), data.get('stl'), data.get('3mf'))
+                if palette: palette.sendInfoToHTML('notification', payload)
+                
+            elif action == 'rename_snapshot':
+                success = core_logic.rename_snapshot(data.get('old_name'), data.get('new_name'))
+                if success and palette:
+                    palette.sendInfoToHTML('update_ui', core_logic.scan_all())
+
             elif action == 'toggle_feature':
                 payload = core_logic.toggle_feature(data.get('name'), data.get('is_suppressed'))
                 if palette: palette.sendInfoToHTML('update_ui', payload)

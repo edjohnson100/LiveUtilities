@@ -1,5 +1,9 @@
-# LiveUtilities
-**A unified, persistent palette for real-time management of User Parameters, Configuration Snapshots, and Design Changelogs for Autodesk Fusion.**
+# LiveUtilities for Autodesk Fusion
+
+**Version:** 1.3.0  
+**Author:** Ed Johnson (Making With An EdJ)
+
+LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, and batch exporting into a single, clean interface.
 
 <img src="LiveUtilitiesAppIcon.png" width="300">
 
@@ -15,10 +19,12 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 
 ---
 
-## ✨ What's New in v1.2.0
+## ✨ What's New in v1.3.0
 
+* **Config Auto-Detect & "Dirty" States:** The Config tab is now context-aware! The active snapshot highlights in green. If you tweak a parameter, it instantly turns red and flags as "(Modified)". Even better, if you manually adjust parameters to match a different saved state, the add-in automatically detects the match and highlights that configuration.
+* **Batch Config Export:** A new "Milestones and Utilities" section in the Changelog tab lets you step through every saved configuration and automatically export them as STEP, STL, and 3MF files to a folder of your choice, complete with a native progress dialog.
+* **Rename Snapshots:** Added a quick-edit pencil icon to rename configuration snapshots without having to delete and recreate them.
 * **The "Orphaned Parameter" Safety Net:** Have you ever renamed a sketch dimension (e.g., `SlotDepth=15`) on the fly, only to accidentally uncheck its "favorite" star later? Normally, Fusion drops it from the autocomplete index and buries it. LiveUtilities now automatically tracks **any** renamed Model Parameter. Even if you unfavorite it or delete the sketch it was attached to, the parameter stays pinned in your LiveUtilities sidebar under "Model Parameters." You can click the star in the UI to instantly register it back into Fusion's type-ahead index!
-* **Unified UI:** A seamless, tabbed interface to switch between Parameters, Configs, and Changelogs. Includes a native Dark/Light mode toggle.
 * **Bulletproof Data Handling:** Safely use dimensional characters (like `1/4" Birch`) in your parameter comments and snapshot names without breaking the backend database.
 
 ---
@@ -52,7 +58,7 @@ Clicking the Live Utilities button opens a persistent palette docked to the righ
 ### Tab 1: Live Parameters
 Keep your parameters docked on the side while you design. Tweak dimensions and see your model update instantly without closing windows.
 
-* **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately.
+* **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately. The expression fields auto-expand dynamically as you resize the palette for long formulas.
 * **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch to hide everything except your favorited parameters.
 * **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters."
 * **Creation:** Expand the "Add Parameter" section to create new ones on the fly. Supports Name, Unit (dropdown + custom), Expression, and Comments. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
@@ -66,7 +72,8 @@ Keep your parameters docked on the side while you design. Tweak dimensions and s
 The missing "Configuration Manager" for Fusion. Save specific combinations of parameters and feature states (Suppressed/Unsuppressed) as named Snapshots, acting as a "Poor Man's" configuration tool.
 
 * **Snapshots:** Once you have your parameters and toggles set exactly how you like them, type a name (e.g., "Printer_A_Settings") and click **Save State**. Switch between snapshots with a single click.
-* **Manage:** Use the **💾 (Update)** button to overwrite a snapshot with the current screen state, or the **🗑️ (Delete)** button to remove it.
+* **Auto-Detect & Dirty Tracking:** The add-in actively monitors your design. The active configuration glows green, turns red if modified, and automatically recognizes if you've manually matched a different saved snapshot.
+* **Manage:** Use the **✎ (Rename)** icon to quickly update a snapshot's name, the **💾 (Update)** button to overwrite it with the current screen state, or the **🗑️ (Delete)** button to remove it.
 * **Tracked Features (The `CFG_` Magic):** Want to toggle timeline features on and off?
     1. In the Fusion timeline, find a feature or group (Extrude, Fillet, Component Group).
     2. Rename it to start with `CFG_` (e.g., `CFG_Holes`).
@@ -74,17 +81,18 @@ The missing "Configuration Manager" for Fusion. Save specific combinations of pa
     4. You will now see a toggle switch for that feature in the palette, and its state will be saved in your Snapshots!
 * **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it.
 
-> **Sample File:** Download `Sink_Strainer_LiveUtilities_Demo.f3d` from the [Releases > Assets](https://github.com/edjohnson100/LiveConfig/releases) section to test drive pre-configured snapshots and `CFG_` timeline groups.
+> **Sample File:** Download `Sink_Strainer_Live_Config_Demo.f3d` from the [Releases > Assets](https://github.com/edjohnson100/LiveConfig/releases) section to test drive pre-configured snapshots and `CFG_` timeline groups.
 
 ---
 
-### Tab 3: Changelog Sidecar
+### Tab 3: Changelog & Utilities
 A dedicated space to log your thoughts, decisions, and milestones. Because the logs are stored inside the Fusion file's attributes, the history travels with the design.
 
 * **The Input Palette:**
     * **New Entry:** Type your notes here. Be verbose! Explain *why* you are making changes.
     * **Autosave Design:** Checked by default. Adding an entry will automatically save the Fusion design (creating a new version) to ensure the log is permanently attached. Uncheck to log a note for the current session without versioning immediately.
-* **Utilities:**
+* **Milestones and Utilities:**
+    * **Batch Export Configs:** Select a folder and automatically export every saved configuration state as STEP, STL, and 3MF files in one batch (includes a native Fusion progress bar).
     * **Create Milestone:** Reached a major turning point (e.g., "Prototype 1 Complete")? This archives the current active log into a history block and starts a fresh active log.
     * **Export:** Saves your entire history (Active + Milestones) to a `.txt` file on your computer.
 * **The Sidecar Dashboard:** Click **📂 OPEN LOG DASHBOARD** to launch a "Live View" of your history in your web browser.

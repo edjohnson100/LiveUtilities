@@ -85,12 +85,72 @@ def scan_all():
     if active_attr:
         last_active = active_attr.value
 
+    # --- NEW: DIRTY STATE EVALUATION (Bulletproof Math Check) ---
+    # --- NEW: AUTO-DETECT MATCHING CONFIG OR DIRTY STATE ---
+    # Build current features dictionary
+    current_feats = {}
+    for f in root.features:
+        if f.name.startswith("CFG_"): current_feats[f.name] = f.isSuppressed
+    for g in design.timeline.timelineGroups:
+        if g.name.startswith("CFG_"): current_feats[g.name] = g.isSuppressed
+
+    # Build current parameters dictionary
+    current_params = {}
+    for p in design.allParameters:
+        is_user = design.userParameters.itemByName(p.name) is not None
+        is_fav = getattr(p, "isFavorite", False)
+        is_renamed = not re.match(r'^d\d+$', p.name) if not is_user else False
+        if is_user or is_fav or is_renamed:
+            current_params[p.name] = p
+
+    um = design.unitsManager
+    
+    # Helper function to check if a specific snapshot perfectly matches the model
+    def check_match(snapshot):
+        snap_params = snapshot.get("params", {})
+        snap_feats = snapshot.get("features", {})
+        
+        if snap_feats != current_feats: return False
+        if len(snap_params) != len(current_params): return False
+        
+        for p_name, saved_expr in snap_params.items():
+            p = current_params.get(p_name)
+            if not p: return False
+            try:
+                saved_val = um.evaluateExpression(saved_expr, p.unit)
+                if round(saved_val, 5) != round(p.value, 5): return False
+            except:
+                if p.expression != saved_expr: return False
+        return True
+
+    # 1. First, assume the state is dirty
+    is_dirty = True
+    matched_name = ""
+
+    # 2. Check if the currently tracked "last_active" config is still a perfect match
+    if last_active and last_active in saved_configs and check_match(saved_configs[last_active]):
+        is_dirty = False
+        matched_name = last_active
+    else:
+        # 3. If it doesn't match, scan ALL other saved configs to see if we stumbled into one!
+        for c_name, c_snap in saved_configs.items():
+            if check_match(c_snap):
+                is_dirty = False
+                matched_name = c_name
+                # Silently update Fusion's tracker so it remembers we shifted to this new state
+                root.attributes.add(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR, matched_name)
+                break
+
+    # 4. If we found a match, tell the UI that's the active config. Otherwise, keep the old name but flag as dirty.
+    final_active_config = matched_name if matched_name else last_active
+
     return json.dumps({
         "doc_name": clean_name,
         "parameters": param_data,
         "features": feature_data,
         "configs": saved_configs,
-        "active_config": last_active
+        "active_config": final_active_config,
+        "is_dirty": is_dirty
     })
 
 # ==============================================================================
@@ -182,6 +242,35 @@ def delete_snapshot(config_name):
     except: pass
     return False
 
+def rename_snapshot(old_name, new_name):
+    app = adsk.core.Application.get()
+    design = app.activeProduct
+    if not design: return False
+    
+    root = design.rootComponent 
+    attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME)
+    if not attr: return False
+    
+    try:
+        current_data = json.loads(attr.value)
+        if old_name in current_data:
+            # Prevent overwriting an existing snapshot with the same name
+            if new_name in current_data and old_name != new_name:
+                return False 
+            
+            # Pop the data from the old name and assign it to the new name
+            current_data[new_name] = current_data.pop(old_name)
+            root.attributes.add(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME, json.dumps(current_data))
+            
+            # Update the active config tracker if the renamed snapshot was the active one
+            active_attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR)
+            if active_attr and active_attr.value == old_name:
+                root.attributes.add(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR, new_name)
+                
+            return True
+    except: pass
+    return False
+
 def apply_snapshot(config_name):
     app = adsk.core.Application.get()
     design = app.activeProduct
@@ -223,6 +312,114 @@ def apply_snapshot(config_name):
         design.isComputeDeferred = False
         app.activeViewport.refresh()
 
+def batch_export_configs(export_step, export_stl, export_3mf):
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    design = app.activeProduct
+    if not design: return json.dumps({"message": "No active design", "type": "error"})
+    
+    root = design.rootComponent
+    exportMgr = design.exportManager
+    
+    attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME)
+    if not attr: return json.dumps({"message": "No configs found.", "type": "error"})
+    
+    try: configs = json.loads(attr.value)
+    except: return json.dumps({"message": "Error parsing configs.", "type": "error"})
+    
+    if not configs: return json.dumps({"message": "No configs to export.", "type": "info"})
+    
+    # 1. Ask user for folder using Fusion's native dialog
+    dlg = ui.createFolderDialog()
+    dlg.title = 'Select Folder for Batch Config Export'
+    if dlg.showDialog() != adsk.core.DialogResults.DialogOK:
+        return json.dumps({"message": "Export cancelled.", "type": "info"})
+    
+    folder = dlg.folder
+    
+    # 2. Remember current active config so we can restore it later
+    last_active = ""
+    active_attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR)
+    if active_attr: last_active = active_attr.value
+    
+    # --- NEW: Setup Progress Dialog ---
+    progressDialog = ui.createProgressDialog()
+    progressDialog.cancelButtonText = 'Cancel'
+    progressDialog.isBackgroundTranslucent = False
+    progressDialog.isCancelButtonShown = True
+    
+    total_configs = len(configs)
+    progressDialog.show('Exporting Configs...', 'Percent Complete: %p% - Processed so far: %v of %m', 0, total_configs, 1)
+    
+    success_count = 0
+    cancel_flag = False
+    
+    def sanitize_filename(name: str) -> str:
+        name = re.sub(r'[<>:"/\\|?*]', '_', name)
+        return name.strip().strip('.')
+        
+    # 3. Step through each config and export requested formats
+    for i, config_name in enumerate(configs.keys()):
+        # Check for user cancellation
+        if progressDialog.wasCancelled:
+            cancel_flag = True
+            break
+            
+        progressDialog.progressValue = i
+        
+        apply_snapshot(config_name)
+        
+        # Give Fusion UI a moment to compute, catch up, and refresh the screen
+        app.activeViewport.refresh()
+        adsk.doEvents() 
+        
+        safe_name = sanitize_filename(config_name)
+        
+        if export_step:
+            path = os.path.join(folder, safe_name + '.step')
+            try:
+                opts = exportMgr.createSTEPExportOptions(path, root)
+                exportMgr.execute(opts)
+                success_count += 1
+            except: pass
+            
+        if export_stl:
+            path = os.path.join(folder, safe_name + '.stl')
+            try:
+                opts = exportMgr.createSTLExportOptions(root, path)
+                exportMgr.execute(opts)
+                success_count += 1
+            except: pass
+            
+        if export_3mf and hasattr(exportMgr, 'createC3MFExportOptions'):
+            path = os.path.join(folder, safe_name + '.3mf')
+            try:
+                opts = exportMgr.createC3MFExportOptions(root)
+                opts.filename = path
+                exportMgr.execute(opts)
+                success_count += 1
+            except: pass
+
+        # Tick the progress bar forward
+        progressDialog.progressValue = i + 1
+        app.activeViewport.refresh()
+        adsk.doEvents()
+            
+    # 4. Restore original config
+    if last_active and last_active in configs:
+        apply_snapshot(last_active)
+        app.activeViewport.refresh()
+        adsk.doEvents()
+        
+    # Hide the dialog now that we are done
+    progressDialog.hide()
+    
+    # 5. Return appropriate message to the HTML UI
+    if cancel_flag:
+        return json.dumps({"message": f"Export aborted. {success_count} files created.", "type": "info"})
+        
+    return json.dumps({"message": f"Exported {success_count} files successfully.", "type": "success"})
+
 # ==============================================================================
 # PARAMETER LOGIC
 # ==============================================================================
@@ -239,7 +436,7 @@ def update_parameter(name, expression):
     try:
         app = adsk.core.Application.get()
         design = app.activeProduct
-        param = design.allParameters.itemByName(name)
+        param = design.userParameters.itemByName(name)
         
         if not param:
             return json.dumps({"message": "Parameter not found", "type": "error"})
@@ -250,8 +447,14 @@ def update_parameter(name, expression):
                 "type": "error"
             })
 
+        # Apply the change
         param.expression = str(expression)
-        return json.dumps({"message": "Updated", "type": "success"})
+        
+        # --- NEW: Grab full state and inject notification data ---
+        scan_result = json.loads(scan_all())
+        scan_result["message"] = "Updated"
+        scan_result["type"] = "success"
+        return json.dumps(scan_result)
 
     except Exception as e:
         return json.dumps({"message": f"Error: {str(e)}", "type": "error"})
@@ -321,6 +524,7 @@ def create_parameter(name, unit, expression, comment):
         scan_result = json.loads(scan_all())
         scan_result["message"] = f"Created '{name}'"
         scan_result["type"] = "success"
+        scan_result["action"] = "create_param"  # Add this flag so JS clears the fields
         return json.dumps(scan_result)
 
     except Exception as e:
