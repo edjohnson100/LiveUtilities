@@ -128,8 +128,13 @@ function renderUI(data) {
     lastReceivedData = data;
     document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
 
+    // --- NEW: Sort parameters A-Z (case-insensitive) before rendering ---
+    if (data.parameters) {
+        data.parameters.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    }
+
     renderParameters(data.parameters || []);
-    renderConfigs(data.configs || {}, data.active_config, data.is_dirty); // Added data.is_dirty here
+    renderConfigs(data.configs || {}, data.active_config, data.is_dirty);
     renderFeatures(data.features || []);
 }
 
@@ -191,7 +196,8 @@ function createParamRow(p) {
 
 function renderConfigs(configs, activeConfig, isDirty) {
     const container = document.getElementById('configList');
-    const names = Object.keys(configs);
+    // --- NEW: Grab config names and sort them A-Z (case-insensitive) ---
+    const names = Object.keys(configs).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     container.innerHTML = '';
 
     if (names.length === 0) {
