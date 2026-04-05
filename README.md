@@ -39,18 +39,25 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 
 ## Installation
 
-### Method: Manual Installation (Scripts & Add-Ins)
-Currently, this add-in requires a quick manual installation. 
+### Manual Installation Options
 
-1. Download the source code as a ZIP file and extract the `LiveUtilities` folder.
-2. Move the entire `LiveUtilities` folder into your Fusion Add-Ins directory:
-   * **Windows:** `%appdata%\Autodesk\Autodesk Fusion 360\API\AddIns`
-   * **Mac:** `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns`
-3. Open Fusion and press `Shift + S` to open the **Scripts and Add-Ins** dialog.
-4. Click the **Add-Ins** tab at the top.
-5. Click the green **"+"** icon next to "My Add-Ins" and select the `LiveUtilities` folder you just moved.
-6. Select `LiveUtilities` from the list, check **"Run on Startup"** (optional), and click **Run**.
-7. You will now find the **Live Utilities** button in the **Solid > Modify** panel.
+This script requires a quick manual installation. You can choose to install it in Fusion's default scripts directory or a custom folder of your choice.
+
+#### Option 1: Install in the Default Fusion Directory
+1. **Download:** Download the source code as a ZIP file and extract the `LiveUtilities` folder.
+2. **Move the Folder:** Move the entire `LiveUtilities` folder into your native Fusion Scripts directory:
+   * **Windows:** `%appdata%\Autodesk\Autodesk Fusion 360\API\Addins`
+   * **Mac:** `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/Addins`
+3. **Open Fusion:** Press `Shift + S` to open the **Scripts and Add-Ins** dialog.
+4. **Run the Script:** Make sure the **Add-ins** filter checkbox is checked. You should see **LiveUtilities** in the list of add-ins. You may want to check the 'Run on startup' option so it automatically runs when Fusion starts. Click the **Run** icon to execute the add-in.
+
+#### Option 2: Install in a Custom Directory
+1. **Download:** Download the source code as a ZIP file and extract the `LiveUtilities` folder.
+2. **Organize:** Create a dedicated folder on your computer for your Fusion tools (e.g., `Documents\Fusion_Tools`) and move the `LiveUtilities` folder inside it.
+3. **Open Fusion:** Press `Shift + S` to open the **Scripts and Add-Ins** dialog.
+4. **Add the Add-in:** Click the grey **"+"** icon next to the search box at the top of the dialog and select **Script or add-in from device**.
+5. **Locate:** Navigate to your custom folder, select the `LiveUtilities` folder, and click **Select Folder**.
+6. **Run the Add-in:** Make sure the **Add-ins** filter checkbox is checked. You should now see **LiveUtilities** listed. You may want to check the 'Run on startup' option so it automatically runs when Fusion starts. Click the **Run** icon to execute the add-in.
 
 ## Using LiveUtilities
 
