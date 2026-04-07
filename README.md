@@ -1,9 +1,9 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.3.1  
+**Version:** 1.4.0  
 **Author:** Ed Johnson (Making With An EdJ)
 
-LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, and batch exporting into a single, clean interface.
+LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, batch exporting, and a global macro script launcher into a single, clean interface.
 
 <img src="LiveUtilitiesAppIcon.png" width="300">
 
@@ -15,25 +15,29 @@ We’ve all been there:
 
 Fusion’s native dialogs are functional, but they are often modal (blocking your view) and lack the space for saving iterative states or detailed historical context. 
 
-**LiveUtilities** solves this by combining three powerful tools—LiveParameters, LiveConfig, and Changelog Sidecar—into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and history in real-time.
+**LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
+
+---
+## ✨ What's New in v1.4.1
+
+* **The Macro Sandbox (Protected Execution):** Complex native scripts (like Fusion's sample `SpurGear`) often contain `adsk.terminate()` commands that accidentally kill the entire LiveUtilities dashboard when they finish. v1.4.1 introduces a system-level sandbox that intercepts and neutralizes these commands, keeping your palette alive.
+* **Package Spoofing:** We added dynamic namespace spoofing to the `importlib` executor. This allows you to link complex scripts that rely on relative imports (`from . import`) without throwing package errors.
+* **UI Polish & Auto-Sorting:** Your linked macros now automatically sort themselves alphabetically (A-Z) in both the launcher and the script manager. The launcher buttons have also been tightened up for a sleeker profile.
+* **Cleaner Version History:** The `C-log:` prefix has been removed from standard design saves to free up screen real estate in Fusion's Data Panel. Milestones are now cleanly marked with a `🚩` emoji so you can visually spot them instantly when scrolling through dozens of saved versions.
+
+---
+## ✨ What's New in v1.4.0
+
+* **The Macro Board (Scripts Tab):** LiveUtilities is now a true command center. You can link your favorite standalone Python scripts (like Gridfinity generators or Canvas Greyscale tools) and launch them directly from the new "Scripts" tab. 
+* **Smart Directory Picker:** When linking a new script, the add-in automatically resolves Fusion's deeply hidden system paths. With one click, you can jump directly to your personal Scripts folder, Add-ins folder, or even the dynamically hashed native Fusion Sample Scripts folder.
+* **Global Plugin Registry:** Your linked scripts are saved globally, meaning your favorite macros are always available in the palette regardless of which Fusion file you have open.
 
 ---
 ## ✨ What's New in v1.3.1
 
-* **Expanded Theme Engine:** We ditched the basic Light/Dark switch for a persistent, multi-theme selector. You can now customize your LiveUtilities palette with developer-favorite color profiles including Ocean Blue, Hacker Green, Warm Sepia, Solarized (Light & Dark), and Gruvbox Light.
-
-* **Persistent UI Memory:** Your selected theme is now saved directly to your local Fusion workspace cache, ensuring the add-in automatically loads your preferred layout every time you boot up.
-
-* **Auto-Sorting UI:** Parameters and Configuration Snapshots now automatically sort themselves alphabetically (A-Z) in the palette, making it much easier to quickly navigate and find what you need in complex designs.
-
----
-## ✨ What's New in v1.3.0
-
-* **Config Auto-Detect & "Dirty" States:** The Config tab is now context-aware! The active snapshot highlights in green. If you tweak a parameter, it instantly turns red and flags as "(Modified)". Even better, if you manually adjust parameters to match a different saved state, the add-in automatically detects the match and highlights that configuration.
-* **Batch Config Export:** A new "Milestones and Utilities" section in the Changelog tab lets you step through every saved configuration and automatically export them as STEP, STL, and 3MF files to a folder of your choice, complete with a native progress dialog.
-* **Rename Snapshots:** Added a quick-edit pencil icon to rename configuration snapshots without having to delete and recreate them.
-* **The "Orphaned Parameter" Safety Net:** Have you ever renamed a sketch dimension (e.g., `SlotDepth=15`) on the fly, only to accidentally uncheck its "favorite" star later? Normally, Fusion drops it from the autocomplete index and buries it. LiveUtilities now automatically tracks **any** renamed Model Parameter. Even if you unfavorite it or delete the sketch it was attached to, the parameter stays pinned in your LiveUtilities sidebar under "Model Parameters." You can click the star in the UI to instantly register it back into Fusion's type-ahead index!
-* **Bulletproof Data Handling:** Safely use dimensional characters (like `1/4" Birch`) in your parameter comments and snapshot names without breaking the backend database.
+* **Expanded Theme Engine:** We ditched the basic Light/Dark switch for a persistent, multi-theme selector. Customizations include Ocean Blue, Hacker Green, Warm Sepia, Solarized (Light & Dark), and Gruvbox Light.
+* **Persistent UI Memory:** Your selected theme and active tab are now saved locally.
+* **Auto-Sorting UI:** Parameters and Configuration Snapshots now automatically sort themselves alphabetically (A-Z).
 
 ---
 
@@ -64,8 +68,8 @@ This script requires a quick manual installation. You can choose to install it i
 ### The Global Interface
 
 Clicking the Live Utilities button opens a persistent palette docked to the right side of your Fusion workspace. 
-* **Tabbed Navigation:** Seamlessly switch between Parameters, Config, and Changelog tools.
-* **Theme Toggle:** Switch between Light and Dark mode using the toggle in the header to match your Fusion UI.
+* **Tabbed Navigation:** Seamlessly switch between Parameters, Config, Changelog, and Scripts.
+* **Theme Toggle:** Switch between multiple developer-friendly themes using the dropdown in the header.
 * **Auto-Sync & Global Refresh:** The palette automatically refreshes whenever you switch to a different active document. You can also manually hit the **↻** button in the header to rescan the model at any time.
 
 ---
@@ -73,51 +77,47 @@ Clicking the Live Utilities button opens a persistent palette docked to the righ
 ### Tab 1: Live Parameters
 Keep your parameters docked on the side while you design. Tweak dimensions and see your model update instantly without closing windows.
 
-* **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately. The expression fields auto-expand dynamically as you resize the palette for long formulas.
-* **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch to hide everything except your favorited parameters.
+* **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately. The expression fields auto-expand dynamically.
+* **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch.
 * **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters."
-* **Creation:** Expand the "Add Parameter" section to create new ones on the fly. Supports Name, Unit (dropdown + custom), Expression, and Comments. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
+* **Creation:** Expand the "Add Parameter" section to create new ones on the fly. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
 * **Rename & Edit Comments:** Click the **Pencil (✎)** icon next to a parameter to safely rename it or update its comment.
-* **Delete:** Click the **X** icon to remove a parameter. The add-in will prevent deletion if the parameter is currently in use by the model.
-* **Safety Interlock:** To prevent data loss, edits are blocked while native Fusion commands (like Extrude, Fillet, or Sketch tools) are actively running. If you get an error, click the Fusion Canvas and press **ESC** to drop the active tool.
+* **The "Orphaned Parameter" Safety Net:** LiveUtilities automatically tracks any renamed Model Parameter. Even if you unfavorite it, it stays pinned in your LiveUtilities sidebar under "Model Parameters."
 
 ---
 
 ### Tab 2: Live Config
-The missing "Configuration Manager" for Fusion. Save specific combinations of parameters and feature states (Suppressed/Unsuppressed) as named Snapshots, acting as a "Poor Man's" configuration tool.
+The missing "Configuration Manager" for Fusion. Save specific combinations of parameters and feature states (Suppressed/Unsuppressed) as named Snapshots.
 
-* **Snapshots:** Once you have your parameters and toggles set exactly how you like them, type a name (e.g., "Printer_A_Settings") and click **Save State**. Switch between snapshots with a single click.
-* **Auto-Detect & Dirty Tracking:** The add-in actively monitors your design. The active configuration glows green, turns red if modified, and automatically recognizes if you've manually matched a different saved snapshot.
-* **Manage:** Use the **✎ (Rename)** icon to quickly update a snapshot's name, the **💾 (Update)** button to overwrite it with the current screen state, or the **🗑️ (Delete)** button to remove it.
-* **Tracked Features (The `CFG_` Magic):** Want to toggle timeline features on and off?
-    1. In the Fusion timeline, find a feature or group (Extrude, Fillet, Component Group).
-    2. Rename it to start with `CFG_` (e.g., `CFG_Holes`).
-    3. Click the Global Refresh (**↻**) button.
-    4. You will now see a toggle switch for that feature in the palette, and its state will be saved in your Snapshots!
+* **Snapshots:** Once you have your parameters and toggles set exactly how you like them, type a name and click **Save State**. Switch between snapshots with a single click.
+* **Auto-Detect & Dirty Tracking:** The active configuration glows green, turns red if modified, and automatically recognizes if you've manually matched a different saved snapshot.
+* **Tracked Features (The `CFG_` Magic):** Want to toggle timeline features on and off? Rename a timeline feature or group to start with `CFG_` (e.g., `CFG_Holes`). Click Global Refresh (**↻**). It will appear in the palette!
 * **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it.
-
-> **Sample File:** Download `Sink_Strainer_Live_Config_Demo.f3d` from the [Releases > Assets](https://github.com/edjohnson100/LiveConfig/releases) section to test drive pre-configured snapshots and `CFG_` timeline groups.
 
 ---
 
 ### Tab 3: Changelog & Utilities
 A dedicated space to log your thoughts, decisions, and milestones. Because the logs are stored inside the Fusion file's attributes, the history travels with the design.
 
-* **The Input Palette:**
-    * **New Entry:** Type your notes here. Be verbose! Explain *why* you are making changes.
-    * **Autosave Design:** Checked by default. Adding an entry will automatically save the Fusion design (creating a new version) to ensure the log is permanently attached. Uncheck to log a note for the current session without versioning immediately.
+* **The Input Palette:** Type your notes here. Checking "Autosave Design" will force a new Fusion version when saving the entry.
 * **Milestones and Utilities:**
-    * **Batch Export Configs:** Select a folder and automatically export every saved configuration state as STEP, STL, and 3MF files in one batch (includes a native Fusion progress bar).
-    * **Create Milestone:** Reached a major turning point (e.g., "Prototype 1 Complete")? This archives the current active log into a history block and starts a fresh active log.
-    * **Export:** Saves your entire history (Active + Milestones) to a `.txt` file on your computer.
-* **The Sidecar Dashboard:** Click **📂 OPEN LOG DASHBOARD** to launch a "Live View" of your history in your web browser.
-    * *Pro Tip:* Drag the browser tab out to create a separate floating window. Resize it into a narrow "Sidecar" next to your Fusion window or move it to a second monitor.
-    * *Auto-Refresh & Smart Scroll:* As you add entries in Fusion, the dashboard updates automatically and remembers your scroll position. Adjust the sync interval via the slider at the top of the dashboard.
+    * **Batch Export Configs:** Export every saved configuration state as STEP, STL, and 3MF files in one batch.
+    * **Create Milestone:** Archives the current active log into a history block and starts a fresh active log.
+* **The Sidecar Dashboard:** Click **📂 OPEN LOG DASHBOARD** to launch a "Live View" of your history in your web browser. Drag it out as a floating window! It auto-refreshes as you type in Fusion.
+
+---
+
+### Tab 4: Scripts (Macro Board)
+A global launcher for your favorite standalone Python scripts. 
+
+* **Link Scripts:** Open the collapsible "Script Manager" and click **➕ Link New Script**. The Smart Directory Picker will offer to jump you directly to your personal Scripts folder, Add-ins folder, or Fusion's native Sample Scripts folder.
+* **Launch:** Click any linked script in the main list to instantly execute it without having to open Fusion's "Scripts and Add-Ins" dialog. 
+* **Persistence:** Your linked macros are saved to a global registry, so they are always available no matter what design you are working on.
 
 ---
 
 ## 🧰 Companion Tool: AttributeNukerPlus
-If you ever need to surgically clean up hidden legacy JSON attributes from your Fusion files (especially useful when uninstalling old add-ins or resetting corrupted metadata), check out my standalone companion utility, **AttributeNukerPlus**. It provides a safe, readable table interface to selectively delete keys or nuke entire attributes.
+If you ever need to surgically clean up hidden legacy JSON attributes from your Fusion files, check out my standalone companion utility, **AttributeNukerPlus**.
 👉 **[Download AttributeNukerPlus Here](https://github.com/edjohnson100/AttributeNukerPlus)**
 
 ---
@@ -127,9 +127,9 @@ If you ever need to surgically clean up hidden legacy JSON attributes from your 
 For the fellow coders and makers out there, here is how LiveUtilities was built:
 * **Language:** Python (Fusion API)
 * **Interface:** HTML5 / CSS3 / Vanilla JavaScript (running in a Fusion Palette)
-* **Data Storage:** Custom JSON payloads stored in `Design.attributes` on the Root Component of the active design.
+* **Data Storage:** Custom JSON payloads stored in `Design.attributes`. The Macro registry is stored locally via standard Python `json` handlers.
 * **Communication:** Asynchronous JSON payload routing via `adsk.core.HTMLEventHandler`.
-* **Dashboard Engine:** A custom generator that writes a localized, self-refreshing HTML file to the user's temporary directory, bypassing standard browser security restrictions for a seamless local experience.
+* **Dynamic Import:** `importlib.util` is utilized to safely load and execute external Python modules dynamically.
 
 ## Acknowledgements & Credits
 
@@ -138,14 +138,13 @@ For the fellow coders and makers out there, here is how LiveUtilities was built:
 * **Icons:** "Lucy in the Sidecar" artwork generated via [Artistly](https://artistly.ai/) and enhanced with Nano Banana 2.
 * **Lucy (The Cavachon Puppy):**
   ***Chief Wellness Officer & Director of Mandatory Breaks***
-  * Thank you for ensuring I maintained healthy circulation and preventing Repetitive Strain Injury one fetch session at a time by interrupting my deep coding sessions.
 * **License:** Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 
 ---
 
 ## Support the Maker (and Lucy!)
 
-I develop these tools to improve my own parametric workflows and love sharing them with the community. If you find LiveUtilities useful and want to say thanks, feel free to **[buy Lucy a dog treat on Ko-fi](https://ko-fi.com/makingwithanedj)**! This is completely optional and supports my Chief Wellness Officer in maintaining mandatory play breaks. Your appreciation and feedback are more than enough.
+I develop these tools to improve my own parametric workflows and love sharing them with the community. If you find LiveUtilities useful and want to say thanks, feel free to **[buy Lucy a dog treat on Ko-fi](https://ko-fi.com/makingwithanedj)**! 
 
 ***
 

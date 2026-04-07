@@ -34,6 +34,7 @@
         <button class="tab-btn active" onclick="switchTab('tab-params')">Parameters</button>
         <button class="tab-btn" onclick="switchTab('tab-config')">Config</button>
         <button class="tab-btn" onclick="switchTab('tab-changelog')">Changelog</button>
+        <button class="tab-btn" onclick="switchTab('tab-scripts')">Scripts</button>
     </div>
 
     <div id="statusMessage" class="status-box"></div>
@@ -157,6 +158,26 @@
         </div>
     </div>
 
+    <div id="tab-scripts" class="tab-content">
+        <div id="scriptLauncherList" class="data-container" style="margin-bottom: 15px;">
+            <div class="empty-state">Loading scripts...</div>
+        </div>
+
+        <div class="section collapsed" id="sec-script-manager">
+            <div class="section-header" onclick="toggleSection('sec-script-manager')">
+                <h3>Script Manager</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <button class="btn-primary" style="margin-bottom: 15px;" onclick="document.getElementById('linkMacroModal').style.display='flex'">➕ Link New Script</button>
+                
+                <div id="scriptManagerList" class="data-container">
+                    <div class="empty-state" style="font-size: 11px;">No scripts to manage.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="editModal" class="modal-overlay">
         <div class="modal-content">
             <h3>Edit Parameter</h3>
@@ -172,6 +193,28 @@
         </div>
     </div>
 
-    <script src="liveutils_script.js?v=2"></script>
+    <div id="linkMacroModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Link a Python Script</h3>
+            <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">
+                Where is the script located? We'll jump directly to the folder.
+            </p>
+            
+            <div class="modal-actions" style="flex-direction: column; gap: 8px;">
+                <button class="btn-secondary" onclick="linkScript('scripts')">
+                    📂 My Scripts Folder
+                </button>
+                <button class="btn-secondary" style="border: 1px dashed var(--border-color);" onclick="linkScript('samples')">
+                    ⚙️ Fusion Sample Scripts
+                </button>
+                <button class="btn-secondary" onclick="linkScript('custom')">
+                    💻 Custom Location (From Device)
+                </button>
+            </div>
+            <button class="btn-cancel" style="margin-top: 10px;" onclick="document.getElementById('linkMacroModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <script src="liveutils_script.js?v=3"></script>
 </body>
 </html>

@@ -5,7 +5,6 @@ import os
 import importlib 
 from pathlib import Path
 
-# We will build this file next!
 from . import core_logic
 importlib.reload(core_logic)
 
@@ -20,11 +19,9 @@ class MyCommandExecuteHandler(adsk.core.CommandEventHandler):
         super().__init__()
     def notify(self, args):
         try:
-            # 1. Cleanup old instances
             old = ui.palettes.itemById(palette_id)
             if old: old.deleteMe()
 
-            # 2. Build Path to the new UI file
             script_folder = os.path.dirname(os.path.realpath(__file__))
             html_path = os.path.join(script_folder, 'resources', 'liveutils_index.html')
             
@@ -34,11 +31,9 @@ class MyCommandExecuteHandler(adsk.core.CommandEventHandler):
 
             url = 'file:///' + html_path.replace('\\', '/')
             
-            # 3. Create Master Palette
             palette = ui.palettes.add(palette_id, 'Live Utilities', url, True, True, True, 360, 500)
             palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
             
-            # 4. Attach Handlers
             onHtmlEvent = MyHTMLEventHandler()
             palette.incomingFromHTML.add(onHtmlEvent)
             handlers.append(onHtmlEvent)
@@ -56,7 +51,6 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
     def __init__(self):
         super().__init__()
     
-    # --- SAFETY CHECK ---
     def is_unsafe(self, palette):
         cmd = ui.activeCommand
         if cmd != 'SelectCommand':
@@ -81,7 +75,7 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
             palette = ui.palettes.itemById(palette_id)
             
             # ==========================================
-            # 1. READ-ONLY ACTIONS (Always Safe)
+            # 1. READ-ONLY ACTIONS
             # ==========================================
             if action == 'refresh_data':
                 payload = core_logic.scan_all()
@@ -96,6 +90,44 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 core_logic.export_log_logic()
                 return
 
+            # --- MACRO ROUTING ---
+            elif action == 'link_external_script':
+                try:
+                    target_type = data.get('target')
+                    fileDialog = ui.createFileDialog()
+                    fileDialog.title = 'Select Python Script to Link'
+                    # The secondary wildcard is often required to prevent silent failures in Fusion's UI
+                    fileDialog.filter = 'Python Files (*.py);;All Files (*.*)'
+                    
+                    paths = core_logic.get_fusion_api_paths()
+                    
+                    if target_type in paths:
+                        target_dir = paths.get(target_type)
+                        if target_dir and os.path.exists(target_dir):
+                            # Normalize slashes just in case
+                            fileDialog.initialDirectory = target_dir.replace('\\', '/')
+                            
+                    if fileDialog.showOpen() == adsk.core.DialogResults.DialogOK:
+                        script_path = fileDialog.filename
+                        core_logic.add_plugin(script_path)
+                        if palette: palette.sendInfoToHTML('update_ui', core_logic.scan_all())
+                except Exception as e:
+                    ui.messageBox(f"Error opening file dialog:\n{str(e)}\n\n{traceback.format_exc()}")
+                return
+
+            elif action == 'launch_script':
+                try:
+                    payload = core_logic.execute_external_script(data.get('path'))
+                    if palette: palette.sendInfoToHTML('notification', payload)
+                except Exception as e:
+                    ui.messageBox(f"Error launching script:\n{str(e)}\n\n{traceback.format_exc()}")
+                return
+
+            elif action == 'unlink_script':
+                core_logic.remove_plugin(data.get('path'))
+                if palette: palette.sendInfoToHTML('update_ui', core_logic.scan_all())
+                return
+
             # ==========================================
             # 2. WRITE ACTIONS (Requires Safety Check)
             # ==========================================
@@ -107,7 +139,6 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 payload = core_logic.update_parameter(data.get('name'), data.get('value'))
                 if palette: 
                     palette.sendInfoToHTML('notification', payload)
-                    # --- NEW: Redraw the UI so the dirty flag updates ---
                     if json.loads(payload).get('type') == 'success':
                         palette.sendInfoToHTML('update_ui', payload)
                 
@@ -126,7 +157,6 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 payload = core_logic.create_parameter(data.get('name'), data.get('unit'), data.get('expression'), data.get('comment'))
                 if palette: 
                     palette.sendInfoToHTML('notification', payload)
-                    # FIX: Only redraw the UI if the parameter was actually created
                     if json.loads(payload).get('type') == 'success':
                         palette.sendInfoToHTML('update_ui', payload)
 
@@ -185,7 +215,6 @@ class MyDocActivatedHandler(adsk.core.DocumentEventHandler):
             if palette and palette.isVisible:
                 payload = core_logic.scan_all()
                 palette.sendInfoToHTML('update_ui', payload)
-            # Also auto-update the sidecar HTML file silently
             core_logic.generate_and_open_report(open_browser=False)
         except: pass 
 
@@ -216,7 +245,7 @@ def run(context):
         cmdDef = ui.commandDefinitions.addButtonDefinition(
             command_id, 
             'Live Utilities', 
-            'Persistent tools for Parameters, Configurations, and Changelogs.', 
+            'Persistent tools for Parameters, Configurations, Changelogs, and Macros.', 
             res_dir
         )
         
@@ -224,7 +253,6 @@ def run(context):
         cmdDef.commandCreated.add(onCreated)
         handlers.append(onCreated)
         
-        # Placing it in the Solid Modify Panel (where LiveConfig and LiveParameters lived)
         panel = ui.allToolbarPanels.itemById('SolidModifyPanel')
         if panel:
             ctrl = panel.controls.addCommand(cmdDef)

@@ -269,7 +269,23 @@ h2 { margin: 0 0 2px 0; font-size: 14px; text-transform: uppercase; letter-spaci
 
 /* TABS */
 .tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; }
-.tab-btn { flex: 1; background: var(--tab-bg); color: var(--tab-text); border: none; padding: 8px 0; cursor: pointer; font-weight: bold; border-radius: 4px 4px 0 0; transition: 0.2s; }
+.tab-btn { 
+    flex: 1; 
+    background: var(--tab-bg); 
+    color: var(--tab-text); 
+    border: none; 
+    padding: 8px 2px; /* Minimal padding to maximize text space */
+    cursor: pointer; 
+    font-weight: bold; 
+    border-radius: 4px 4px 0 0; 
+    transition: 0.2s; 
+
+    /* --- NEW SIZING & OVERFLOW RULES --- */
+    font-size: 12px;        /* Shrink the text slightly */
+    white-space: nowrap;    /* Force text to stay on a single line */
+    overflow: hidden;       /* Clip the text if the palette gets too narrow */
+    text-overflow: ellipsis;/* Add '...' if the text gets clipped */
+}
 .tab-btn:hover { background: var(--tab-active-bg); opacity: 0.8; }
 .tab-btn.active { background: var(--tab-active-bg); color: var(--tab-active-text); border-bottom: 2px solid var(--tab-active-text); margin-bottom: -2px; }
 .tab-content { display: none; animation: fadeIn 0.2s; }

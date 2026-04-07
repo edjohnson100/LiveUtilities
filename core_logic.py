@@ -6,6 +6,9 @@ import tempfile
 import webbrowser
 import time
 import os
+import sys
+import platform
+import importlib.util
 
 # ==============================================================================
 # CONSTANTS (From Config & Changelog)
@@ -13,32 +16,149 @@ import os
 CONFIG_ATTR_GROUP = "EdJ_Data"
 CONFIG_ATTR_NAME = "Config_Snapshots"
 ACTIVE_CONFIG_ATTR = "Last_Active_Config"
+PLUGIN_REGISTRY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'plugins.json')
+
+# ==============================================================================
+# PLUGIN / MACRO MANAGER
+# ==============================================================================
+def get_fusion_api_paths():
+    """Dynamically resolves Fusion's hidden and hashed script directories."""
+    paths = {}
+    is_mac = platform.system() == 'Darwin'
+    
+    # 1. User's Personal Scripts
+    if is_mac:
+        user_base = os.path.expanduser("~/Library/Application Support/Autodesk/Autodesk Fusion 360/API")
+    else:
+        user_base = os.path.expandvars(r"%APPDATA%\Autodesk\Autodesk Fusion 360\API")
+        
+    paths['scripts'] = os.path.join(user_base, "Scripts")
+    
+    # 2. Native Fusion Samples (Dynamic Production Hash Folder)
+    prod_dir = os.path.dirname(sys.executable)
+    if is_mac:
+        samples_path = ""
+        for p in sys.path:
+            clean_path = p.replace('\\', '/')
+            if "Api/Python/packages" in clean_path:
+                samples_path = os.path.abspath(os.path.join(p, "../../Samples"))
+                break
+        paths['samples'] = samples_path
+    else:
+        paths['samples'] = os.path.join(prod_dir, "Python", "Samples")
+        
+    return paths
+
+def get_plugins():
+    if os.path.exists(PLUGIN_REGISTRY_PATH):
+        try:
+            with open(PLUGIN_REGISTRY_PATH, 'r') as f:
+                return json.load(f)
+        except: return []
+    return []
+
+def save_plugins(plugins):
+    try:
+        with open(PLUGIN_REGISTRY_PATH, 'w') as f:
+            json.dump(plugins, f, indent=4)
+    except: pass
+
+def add_plugin(path):
+    plugins = get_plugins()
+    name = os.path.basename(path).replace('.py', '')
+    if not any(p.get('path') == path for p in plugins):
+        plugins.append({'name': name, 'path': path})
+        save_plugins(plugins)
+
+def remove_plugin(path):
+    plugins = get_plugins()
+    plugins = [p for p in plugins if p.get('path') != path]
+    save_plugins(plugins)
+
+def execute_external_script(script_path):
+    try:
+        if not os.path.exists(script_path):
+            return json.dumps({"message": "Script file not found.", "type": "error"})
+
+        folder = os.path.dirname(script_path)
+        module_name = os.path.splitext(os.path.basename(script_path))[0]
+
+        # --- THE SANDBOX FIX: NEUTRALIZE adsk.terminate ---
+        # Standalone scripts call adsk.terminate() when their dialogs close.
+        # If they do that inside our Add-in, it kills LiveUtilities!
+        # We intercept and disable that specific command globally.
+        if not hasattr(adsk, '_edj_terminate_patched'):
+            try:
+                adsk._original_terminate = adsk.terminate
+                adsk.terminate = lambda: None
+                adsk._edj_terminate_patched = True
+            except:
+                pass
+
+        # 1. Add the folder to the system path so standard imports work
+        if folder not in sys.path:
+            sys.path.insert(0, folder)
+
+        # 2. Build the module spec
+        spec = importlib.util.spec_from_file_location(module_name, script_path)
+        script_module = importlib.util.module_from_spec(spec)
+        
+        # 3. Fake the Package Namespace (Fixes relative imports like 'from . import')
+        script_module.__package__ = module_name
+        script_module.__path__ = [folder] 
+        sys.modules[module_name] = script_module
+
+        # 4. Execute the module code
+        spec.loader.exec_module(script_module)
+
+        # 5. Trigger Fusion's standard run() function
+        if hasattr(script_module, 'run'):
+            context = {'isApplicationStartup': False}
+            script_module.run(context)
+            
+            # Clean up sys.path
+            if folder in sys.path:
+                sys.path.remove(folder)
+            
+            return json.dumps({"message": f"Ran {module_name}", "type": "success"})
+        else:
+            if folder in sys.path:
+                sys.path.remove(folder)
+            return json.dumps({"message": "No run() function found in script.", "type": "error"})
+
+    except Exception as e:
+        # Failsafe cleanup
+        try:
+            folder = os.path.dirname(script_path)
+            if folder in sys.path:
+                sys.path.remove(folder)
+        except: pass
+        
+        return json.dumps({"message": f"Error executing script:\n{str(e)}", "type": "error"})
 
 # ==============================================================================
 # MASTER SCANNER
 # ==============================================================================
 def scan_all():
-    """Scans parameters, timeline features, and saved configs in one pass."""
+    """Scans parameters, timeline features, saved configs, and plugins in one pass."""
     app = adsk.core.Application.get()
     design = app.activeProduct
     
+    # Grab plugins right away as they are global
+    global_plugins = get_plugins()
+    
     if not design: 
-        return json.dumps({"error": "No design active"})
+        return json.dumps({"error": "No design active", "plugins": global_plugins})
 
     clean_name = re.sub(r'\s+v\d+$', '', app.activeDocument.name)
 
     # 1. PARAMETERS (Merged from live_logic and config_logic)
     param_data = []
     for param in design.allParameters:
-        # Fusion Quirk Fix: Orphaned model parameters sometimes spoof their classType.
-        # The only foolproof check is if it actually exists in the UserParameters collection.
         is_user = design.userParameters.itemByName(param.name) is not None
         is_fav = getattr(param, "isFavorite", False)
-        
-        # Check if the name deviates from the standard "d123" format
         is_renamed = not re.match(r'^d\d+$', param.name) if not is_user else False
         
-        # Keep User Parameters, and any Model Parameter that is Favorited OR Renamed
         if is_user or is_fav or is_renamed:
             safe_val = 0
             try: safe_val = param.value
@@ -85,16 +205,13 @@ def scan_all():
     if active_attr:
         last_active = active_attr.value
 
-    # --- NEW: DIRTY STATE EVALUATION (Bulletproof Math Check) ---
-    # --- NEW: AUTO-DETECT MATCHING CONFIG OR DIRTY STATE ---
-    # Build current features dictionary
+    # --- DIRTY STATE EVALUATION ---
     current_feats = {}
     for f in root.features:
         if f.name.startswith("CFG_"): current_feats[f.name] = f.isSuppressed
     for g in design.timeline.timelineGroups:
         if g.name.startswith("CFG_"): current_feats[g.name] = g.isSuppressed
 
-    # Build current parameters dictionary
     current_params = {}
     for p in design.allParameters:
         is_user = design.userParameters.itemByName(p.name) is not None
@@ -105,7 +222,6 @@ def scan_all():
 
     um = design.unitsManager
     
-    # Helper function to check if a specific snapshot perfectly matches the model
     def check_match(snapshot):
         snap_params = snapshot.get("params", {})
         snap_feats = snapshot.get("features", {})
@@ -123,25 +239,20 @@ def scan_all():
                 if p.expression != saved_expr: return False
         return True
 
-    # 1. First, assume the state is dirty
     is_dirty = True
     matched_name = ""
 
-    # 2. Check if the currently tracked "last_active" config is still a perfect match
     if last_active and last_active in saved_configs and check_match(saved_configs[last_active]):
         is_dirty = False
         matched_name = last_active
     else:
-        # 3. If it doesn't match, scan ALL other saved configs to see if we stumbled into one!
         for c_name, c_snap in saved_configs.items():
             if check_match(c_snap):
                 is_dirty = False
                 matched_name = c_name
-                # Silently update Fusion's tracker so it remembers we shifted to this new state
                 root.attributes.add(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR, matched_name)
                 break
 
-    # 4. If we found a match, tell the UI that's the active config. Otherwise, keep the old name but flag as dirty.
     final_active_config = matched_name if matched_name else last_active
 
     return json.dumps({
@@ -150,7 +261,8 @@ def scan_all():
         "features": feature_data,
         "configs": saved_configs,
         "active_config": final_active_config,
-        "is_dirty": is_dirty
+        "is_dirty": is_dirty,
+        "plugins": global_plugins
     })
 
 # ==============================================================================
@@ -182,10 +294,8 @@ def save_snapshot(config_name):
     
     root = design.rootComponent 
 
-    # Grab current state of all tracked parameters
     params = {}
     for p in design.allParameters:
-        # Use the foolproof collection check here as well
         is_user = design.userParameters.itemByName(p.name) is not None
         is_fav = getattr(p, "isFavorite", False)
         is_renamed = not re.match(r'^d\d+$', p.name) if not is_user else False
@@ -194,7 +304,6 @@ def save_snapshot(config_name):
             params[p.name] = p.expression
 
     feats = {}
-    
     for f in root.features:
         if f.name.startswith("CFG_"):
             feats[f.name] = f.isSuppressed
@@ -204,7 +313,6 @@ def save_snapshot(config_name):
         if g.name.startswith("CFG_"):
             feats[g.name] = g.isSuppressed
 
-    # Update attributes
     current_data = {}
     attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME)
     if attr:
@@ -254,15 +362,12 @@ def rename_snapshot(old_name, new_name):
     try:
         current_data = json.loads(attr.value)
         if old_name in current_data:
-            # Prevent overwriting an existing snapshot with the same name
             if new_name in current_data and old_name != new_name:
                 return False 
             
-            # Pop the data from the old name and assign it to the new name
             current_data[new_name] = current_data.pop(old_name)
             root.attributes.add(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME, json.dumps(current_data))
             
-            # Update the active config tracker if the renamed snapshot was the active one
             active_attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR)
             if active_attr and active_attr.value == old_name:
                 root.attributes.add(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR, new_name)
@@ -286,13 +391,11 @@ def apply_snapshot(config_name):
     
     design.isComputeDeferred = True
     try:
-        # 1. Apply Parameters
         saved_params = snapshot.get("params", {})
         for name, expr in saved_params.items():
             p = design.allParameters.itemByName(name)
             if p: p.expression = expr
             
-        # 2. Apply Timeline Features
         saved_feats = snapshot.get("features", {})
         timeline = design.timeline
         for name, is_suppressed in saved_feats.items():
@@ -329,7 +432,6 @@ def batch_export_configs(export_step, export_stl, export_3mf):
     
     if not configs: return json.dumps({"message": "No configs to export.", "type": "info"})
     
-    # 1. Ask user for folder using Fusion's native dialog
     dlg = ui.createFolderDialog()
     dlg.title = 'Select Folder for Batch Config Export'
     if dlg.showDialog() != adsk.core.DialogResults.DialogOK:
@@ -337,12 +439,10 @@ def batch_export_configs(export_step, export_stl, export_3mf):
     
     folder = dlg.folder
     
-    # 2. Remember current active config so we can restore it later
     last_active = ""
     active_attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR)
     if active_attr: last_active = active_attr.value
     
-    # --- NEW: Setup Progress Dialog ---
     progressDialog = ui.createProgressDialog()
     progressDialog.cancelButtonText = 'Cancel'
     progressDialog.isBackgroundTranslucent = False
@@ -358,9 +458,7 @@ def batch_export_configs(export_step, export_stl, export_3mf):
         name = re.sub(r'[<>:"/\\|?*]', '_', name)
         return name.strip().strip('.')
         
-    # 3. Step through each config and export requested formats
     for i, config_name in enumerate(configs.keys()):
-        # Check for user cancellation
         if progressDialog.wasCancelled:
             cancel_flag = True
             break
@@ -368,8 +466,6 @@ def batch_export_configs(export_step, export_stl, export_3mf):
         progressDialog.progressValue = i
         
         apply_snapshot(config_name)
-        
-        # Give Fusion UI a moment to compute, catch up, and refresh the screen
         app.activeViewport.refresh()
         adsk.doEvents() 
         
@@ -400,21 +496,17 @@ def batch_export_configs(export_step, export_stl, export_3mf):
                 success_count += 1
             except: pass
 
-        # Tick the progress bar forward
         progressDialog.progressValue = i + 1
         app.activeViewport.refresh()
         adsk.doEvents()
             
-    # 4. Restore original config
     if last_active and last_active in configs:
         apply_snapshot(last_active)
         app.activeViewport.refresh()
         adsk.doEvents()
         
-    # Hide the dialog now that we are done
     progressDialog.hide()
     
-    # 5. Return appropriate message to the HTML UI
     if cancel_flag:
         return json.dumps({"message": f"Export aborted. {success_count} files created.", "type": "info"})
         
@@ -447,10 +539,8 @@ def update_parameter(name, expression):
                 "type": "error"
             })
 
-        # Apply the change
         param.expression = str(expression)
         
-        # --- NEW: Grab full state and inject notification data ---
         scan_result = json.loads(scan_all())
         scan_result["message"] = "Updated"
         scan_result["type"] = "success"
@@ -468,7 +558,6 @@ def toggle_favorite(name):
             param.isFavorite = not param.isFavorite
     except:
         pass
-    # Return full UI state update
     return scan_all()
 
 def update_parameter_attributes(old_name, new_name, comment):
@@ -493,7 +582,6 @@ def update_parameter_attributes(old_name, new_name, comment):
         if param:
             param.comment = str(comment)
 
-        # Grab full state and inject notification data
         scan_result = json.loads(scan_all())
         scan_result["message"] = "Saved"
         scan_result["type"] = "success"
@@ -520,11 +608,10 @@ def create_parameter(name, unit, expression, comment):
         real_val = adsk.core.ValueInput.createByString(expression)
         design.userParameters.add(name, real_val, unit, comment)
         
-        # Grab full state and inject notification data
         scan_result = json.loads(scan_all())
         scan_result["message"] = f"Created '{name}'"
         scan_result["type"] = "success"
-        scan_result["action"] = "create_param"  # Add this flag so JS clears the fields
+        scan_result["action"] = "create_param" 
         return json.dumps(scan_result)
 
     except Exception as e:
@@ -543,7 +630,6 @@ def delete_parameter(name):
         is_deleted = param.deleteMe()
         
         if is_deleted:
-            # Grab full state and inject notification data
             scan_result = json.loads(scan_all())
             scan_result["message"] = f"Deleted '{name}'"
             scan_result["type"] = "success"
@@ -558,21 +644,16 @@ def delete_parameter(name):
         return json.dumps({"message": f"Error: {str(e)}", "type": "error"})
     
 # ==============================================================================
-# CHANGELOG CONSTANTS (Preserved for backward compatibility)
+# CHANGELOG LOGIC
 # ==============================================================================
 CHANGELOG_GROUP_KEY = 'EdJ_ChangelogSidecar_Group'
 CHANGELOG_NAME_KEY = 'EdJ_ChangelogSidecar_Data'
 ARCHIVE_LOG_PREFIX = 'archive_' 
 
-# ==============================================================================
-# CHANGELOG HELPERS
-# ==============================================================================
 def get_timestamp_and_user():
     app = adsk.core.Application.get()
-    try:
-        username = app.currentUser.displayName
-    except:
-        username = 'Unknown'
+    try: username = app.currentUser.displayName
+    except: username = 'Unknown'
         
     now = datetime.datetime.now().astimezone()
     tz_name = now.tzname()
@@ -601,7 +682,7 @@ def add_entry_logic(note_text, autosave):
     if autosave:
         doc = app.activeDocument
         if doc.isSaved:
-            try: doc.save(f'C-log: {note_text[:50]}')
+            try: doc.save(f'{note_text[:50]}')
             except: pass
 
 def create_milestone_logic(reason):
@@ -628,7 +709,7 @@ def create_milestone_logic(reason):
     
     doc = app.activeDocument
     if doc.isSaved:
-        try: doc.save(f'C-log Milestone: {reason[:50]}')
+        try: doc.save(f'🚩 {reason[:50]}')
         except: pass
 
 def export_log_logic():
@@ -669,9 +750,6 @@ def export_log_logic():
             f.write(export_str)
         ui.messageBox(f'Exported to {fileDialog.filename}')
 
-# ==============================================================================
-# DASHBOARD GENERATOR
-# ==============================================================================
 def generate_and_open_report(open_browser=True):
     app = adsk.core.Application.get()
     design = app.activeProduct
@@ -681,7 +759,6 @@ def generate_and_open_report(open_browser=True):
     full_name = app.activeDocument.name
     stable_name = re.sub(r'\s+v\d+$', '', full_name)
 
-    # Styles
     css = """
     <style>
         :root {
@@ -724,7 +801,6 @@ def generate_and_open_report(open_browser=True):
     </style>
     """
 
-    # READ ACTIVE
     active_html = ""
     attr = root.attributes.itemByName(CHANGELOG_GROUP_KEY, CHANGELOG_NAME_KEY)
     if attr:
@@ -738,7 +814,6 @@ def generate_and_open_report(open_browser=True):
         except: active_html = "<p style='color:red'>Error reading active log.</p>"
     else: active_html = "<p style='font-style:italic; color:#888'>No active entries. Add one to start tracking.</p>"
 
-    # READ ARCHIVES
     archive_html = ""
     all_attrs = root.attributes.itemsByGroup(CHANGELOG_GROUP_KEY)
     archive_list = [a for a in all_attrs if a.name.startswith(ARCHIVE_LOG_PREFIX)]
@@ -763,7 +838,6 @@ def generate_and_open_report(open_browser=True):
 
     now_str = datetime.datetime.now().strftime("%H:%M:%S")
 
-    # BUILD HTML
     full_html = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -893,4 +967,3 @@ def generate_and_open_report(open_browser=True):
         
     if open_browser:
         webbrowser.open_new('file://' + file_path)
-

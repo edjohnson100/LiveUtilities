@@ -4,17 +4,14 @@ let searchQuery = "";
 let statusTimeout;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Theme Initialization
     const savedTheme = localStorage.getItem('edj_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     const themeSelector = document.getElementById('themeSelector');
     if (themeSelector) themeSelector.value = savedTheme;
 
-    // 2. Tab Memory
     const savedTab = localStorage.getItem('edj_active_tab') || 'tab-params';
     switchTab(savedTab);
 
-    // 3. Listeners
     document.getElementById('favFilterCheck').addEventListener('change', e => {
         if (lastReceivedData) renderUI(lastReceivedData);
     });
@@ -26,20 +23,17 @@ document.addEventListener('DOMContentLoaded', function() {
     waitForFusion();
 });
 
-// --- THEME NAVIGATION ---
 function changeTheme() {
     const theme = document.getElementById('themeSelector').value;
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('edj_theme', theme);
 }
 
-// --- UI NAVIGATION ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     
-    // Find matching button
     const btns = document.querySelectorAll('.tab-btn');
     for(let btn of btns) {
         if(btn.getAttribute('onclick').includes(tabId)) {
@@ -48,12 +42,12 @@ function switchTab(tabId) {
         }
     }
 
-    // --- NEW DYNAMIC TITLE LOGIC ---
     const titleEl = document.getElementById('appTitle');
     if (titleEl) {
         if (tabId === 'tab-params') titleEl.innerText = 'LIVE PARAMETERS';
         else if (tabId === 'tab-config') titleEl.innerText = 'LIVE CONFIG';
         else if (tabId === 'tab-changelog') titleEl.innerText = 'CHANGELOG SIDECAR';
+        else if (tabId === 'tab-scripts') titleEl.innerText = 'MACRO BOARD';
     }
     
     localStorage.setItem('edj_active_tab', tabId);
@@ -63,9 +57,6 @@ function toggleSection(id) {
     document.getElementById(id).classList.toggle('collapsed');
 }
 
-// --- FUSION BRIDGE ---
-
-// 1. Declare the handler globally FIRST so Python never hits a ReferenceError
 window.fusionJavaScriptHandler = {
     handle: function(action, data) {
         try {
@@ -77,14 +68,11 @@ window.fusionJavaScriptHandler = {
     }
 };
 
-// 2. Then wait for the adsk object to initialize to send the refresh command
 function waitForFusion() {
     if (window.adsk) {
-        // Optional modern event listener binding
         if (window.adsk.fusion && window.adsk.fusion.on) {
             window.adsk.fusion.on('update_ui', (jsonStr) => renderUI(JSON.parse(jsonStr)));
         }
-        // Ask Python for the initial data payload
         refreshData(); 
     } else {
         setTimeout(waitForFusion, 500);
@@ -105,13 +93,10 @@ function sendToFusion(action, data = {}) {
 
 function refreshData() { sendToFusion('refresh_data'); }
 
-// --- STATUS NOTIFICATIONS ---
 function showStatus(data) {
     const box = document.getElementById('statusMessage');
     box.innerText = data.message;
     box.className = 'status-box ' + (data.type || 'info');
-    
-    // Clear the inline style from the previous timeout so the CSS class takes over
     box.style.display = '';
 
     if (statusTimeout) clearTimeout(statusTimeout);
@@ -130,14 +115,22 @@ function renderUI(data) {
     lastReceivedData = data;
     document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
 
-    // --- NEW: Sort parameters A-Z (case-insensitive) before rendering ---
+    // Sort parameters A-Z (case-insensitive)
     if (data.parameters) {
         data.parameters.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    }
+    
+    // --- NEW: Sort scripts/plugins A-Z (case-insensitive) ---
+    if (data.plugins) {
+        data.plugins.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     }
 
     renderParameters(data.parameters || []);
     renderConfigs(data.configs || {}, data.active_config, data.is_dirty);
     renderFeatures(data.features || []);
+    
+    // Pass the newly sorted plugins to the renderer
+    renderScripts(data.plugins || []); 
 }
 
 function renderParameters(params) {
@@ -152,18 +145,15 @@ function renderParameters(params) {
     if (favOnly) visible = visible.filter(p => p.isFavorite);
     if (searchQuery) visible = visible.filter(p => p.name.toLowerCase().includes(searchQuery));
 
-    // Split into our two categories using the flag from Python
     const userParams = visible.filter(p => p.is_user_param);
     const modelParams = visible.filter(p => !p.is_user_param);
 
-    // Render User Params
     if (userParams.length === 0) {
         userContainer.innerHTML = `<div class="empty-state">No matching user parameters.</div>`;
     } else {
         userParams.forEach(p => userContainer.innerHTML += createParamRow(p));
     }
 
-    // Render Model Params
     if (modelParams.length === 0) {
         modelContainer.innerHTML = `<div class="empty-state">No matching model parameters.</div>`;
     } else {
@@ -171,7 +161,6 @@ function renderParameters(params) {
     }
 }
 
-// Helper function to build the HTML string for a single parameter row
 function createParamRow(p) {
     const star = p.isFavorite ? '#ff9e3b' : '#555';
     const safeCommHTML = p.comment ? p.comment.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : "";
@@ -198,7 +187,6 @@ function createParamRow(p) {
 
 function renderConfigs(configs, activeConfig, isDirty) {
     const container = document.getElementById('configList');
-    // --- NEW: Grab config names and sort them A-Z (case-insensitive) ---
     const names = Object.keys(configs).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     container.innerHTML = '';
 
@@ -208,17 +196,15 @@ function renderConfigs(configs, activeConfig, isDirty) {
     }
 
     names.forEach(name => {
-        // Start with the base layout styling
         let combinedStyle = 'flex-grow:1; text-align:left; margin-right:5px;';
         let dirtyIndicator = '';
         
-        // Append the Green/Red styling based on the dirty flag
         if (name === activeConfig) {
             if (isDirty) {
-                combinedStyle += ' border-color: #dc3545; color: #dc3545;'; // Red for dirty
+                combinedStyle += ' border-color: #dc3545; color: #dc3545;';
                 dirtyIndicator = '<span style="font-size: 10px; opacity: 0.8; margin-left: 5px;">(Modified)</span>';
             } else {
-                combinedStyle += ' border-color: #28a745; color: #28a745;'; // Green for clean
+                combinedStyle += ' border-color: #28a745; color: #28a745;';
             }
         }
         
@@ -263,14 +249,45 @@ function renderFeatures(features) {
     });
 }
 
-// --- ACTION DISPATCHERS ---
+function renderScripts(scripts) {
+    const launcherContainer = document.getElementById('scriptLauncherList');
+    const managerContainer = document.getElementById('scriptManagerList');
+    
+    launcherContainer.innerHTML = '';
+    managerContainer.innerHTML = '';
 
-// Parameters
+    if (!scripts || scripts.length === 0) {
+        launcherContainer.innerHTML = '<div class="empty-state">No scripts linked. Open the Script Manager to add some!</div>';
+        managerContainer.innerHTML = '<div class="empty-state" style="font-size: 11px;">No scripts to manage.</div>';
+        return;
+    }
+
+    scripts.forEach(script => {
+        const safeName = script.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const encodedPath = encodeURIComponent(script.path);
+
+        // Updated Launcher Button: Switched to btn-success, reduced padding and font size for a sleeker profile.
+        launcherContainer.innerHTML += `
+            <button class="btn-success" style="padding: 9px 12px; margin-bottom: 6px; font-size: 12px; text-align: left; display: flex; align-items: center; justify-content: flex-start; gap: 8px;" onclick="sendToFusion('launch_script', {path: decodeURIComponent('${encodedPath}')})">
+                <span style="opacity: 0.8; font-size: 10px;">▶</span> ${safeName}
+            </button>
+        `;
+
+        managerContainer.innerHTML += `
+            <div class="data-row" style="margin-bottom: 4px;">
+                <span class="row-label" title="${script.path}">${safeName}</span>
+                <div class="row-controls">
+                    <button class="action-btn del-btn" title="Unlink" onclick="if(confirm('Unlink ${safeName}?')) sendToFusion('unlink_script', {path: decodeURIComponent('${encodedPath}')})">×</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
 function createParam() {
     const nameField = document.getElementById('new_name').value.trim();
     const exprField = document.getElementById('new_expr').value.trim();
 
-    // Prevent submission if required fields are empty
     if (!nameField || !exprField) {
         showStatus({ message: "Name and Expression are required.", type: "error" });
         return;
@@ -290,7 +307,6 @@ function createParam() {
 function deleteParam(name) { if(confirm(`Delete parameter '${name}'?`)) sendToFusion('delete_param', {name: name}); }
 function toggleCustomUnit(sel) { document.getElementById('custom_unit').style.display = (sel.value === 'OTHER') ? 'block' : 'none'; }
 
-// Modal Logic
 function openEditModal(name, comm) {
     document.getElementById('editModalName').value = name;
     document.getElementById('editModalOldName').value = name;
@@ -307,7 +323,6 @@ function saveEditModal() {
     closeEditModal();
 }
 
-// Config
 function saveSnapshot() {
     const name = document.getElementById('newConfigName').value.trim();
     if(name) {
@@ -323,7 +338,6 @@ function renameSnapshot(oldName) {
     }
 }
 
-// Changelog
 function sendLogEntry() {
     const text = document.getElementById('newEntryText').value;
     if(text) {
@@ -346,6 +360,14 @@ function exportConfigs() {
         stl: document.getElementById('expSTL').checked,
         '3mf': document.getElementById('exp3MF').checked
     });
+}
+
+// --- MACRO DISPATCHER ---
+function linkScript(target) {
+    // Hide the modal first
+    document.getElementById('linkMacroModal').style.display = 'none';
+    // Send the clean event to Python
+    sendToFusion('link_external_script', { target: target });
 }
 
 function openDashboard() { sendToFusion('refresh_dashboard'); }
