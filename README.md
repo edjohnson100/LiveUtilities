@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.4.0  
+**Version:** 1.4.2
 **Author:** Ed Johnson (Making With An EdJ)
 
 LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, batch exporting, and a global macro script launcher into a single, clean interface.
@@ -16,6 +16,13 @@ We’ve all been there:
 Fusion’s native dialogs are functional, but they are often modal (blocking your view) and lack the space for saving iterative states or detailed historical context. 
 
 **LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
+
+---
+## ✨ What's New in v1.4.2
+
+* **Telepathic Auto-Sync:** LiveUtilities now actively listens to Fusion's native command stream. Whether you `Undo`, `Redo`, alter a parameter through Fusion's native dialog, rename a timeline feature, or delete/expand a group, the palette instantly and silently updates to match your workspace. 
+* **Sketch Environment Integration:** You no longer need to exit a sketch to manage your parameters! The Live Utilities launcher has been added directly to the `Sketch > Modify` panel for seamless access while dimensioning.
+* **Stop Sketch & Compute Sweeps:** The add-in automatically sweeps for background parameter changes the exact second you finish a sketch or force a global recalculation (`Compute All`), keeping your math perfectly in sync.
 
 ---
 ## ✨ What's New in v1.4.1

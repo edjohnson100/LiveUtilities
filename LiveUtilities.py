@@ -96,7 +96,6 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                     target_type = data.get('target')
                     fileDialog = ui.createFileDialog()
                     fileDialog.title = 'Select Python Script to Link'
-                    # The secondary wildcard is often required to prevent silent failures in Fusion's UI
                     fileDialog.filter = 'Python Files (*.py);;All Files (*.*)'
                     
                     paths = core_logic.get_fusion_api_paths()
@@ -104,7 +103,6 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                     if target_type in paths:
                         target_dir = paths.get(target_type)
                         if target_dir and os.path.exists(target_dir):
-                            # Normalize slashes just in case
                             fileDialog.initialDirectory = target_dir.replace('\\', '/')
                             
                     if fileDialog.showOpen() == adsk.core.DialogResults.DialogOK:
@@ -218,6 +216,51 @@ class MyDocActivatedHandler(adsk.core.DocumentEventHandler):
             core_logic.generate_and_open_report(open_browser=False)
         except: pass 
 
+# --- NEW: Undo / Redo / Parameter Change / Timeline Listener ---
+class MyCommandTerminatedHandler(adsk.core.ApplicationCommandEventHandler):
+    def __init__(self): 
+        super().__init__()
+    
+    def notify(self, args):
+        try:
+            # ==========================================
+            # DIAGNOSTIC SNIFFER (Uncomment to debug commands)
+            # ==========================================
+            # app = adsk.core.Application.get()
+            # ui = app.userInterface
+            # text_palette = ui.palettes.itemById('TextCommands')
+            # if text_palette:
+            #     if not text_palette.isVisible: text_palette.isVisible = True
+            #     text_palette.writeText(f"⚙️ LiveUtilities Sniffer caught: {args.commandId}")
+            # ==========================================
+
+            # The specific native Fusion commands we want to watch for
+            triggers = [
+                'UndoCommand', 
+                'RedoCommand', 
+                'ChangeParametersCommand',
+                'RenameCommand',         
+                'BrowserRenameCommand',  
+                'SuppressCommand',       
+                'UnsuppressCommand',     
+                'FusionDeleteCommand',             # Catches standard deletions
+                'FusionExpandGroupFeatureCommand', # Catches 'Delete and expand contents'
+                'StopSketchCommand',     
+                'ComputeAllCommand'      
+            ]
+            
+            if args.commandId in triggers:
+                palette = ui.palettes.itemById(palette_id)
+                if palette and palette.isVisible:
+                    # Silently scan and update the HTML UI
+                    payload = core_logic.scan_all()
+                    palette.sendInfoToHTML('update_ui', payload)
+                    
+                    # Silently refresh the Changelog sidecar just in case
+                    core_logic.generate_and_open_report(open_browser=False)
+        except: 
+            pass
+
 class MyCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self): super().__init__()
     def notify(self, args):
@@ -231,7 +274,7 @@ class MyPaletteCloseHandler(adsk.core.UserInterfaceGeneralEventHandler):
     def notify(self, args): pass
 
 def run(context):
-    global ui, app
+    global ui, app, onCmdTerminated
     try:
         app = adsk.core.Application.get()
         ui = app.userInterface
@@ -253,14 +296,27 @@ def run(context):
         cmdDef.commandCreated.add(onCreated)
         handlers.append(onCreated)
         
-        panel = ui.allToolbarPanels.itemById('SolidModifyPanel')
-        if panel:
-            ctrl = panel.controls.addCommand(cmdDef)
-            ctrl.isPromoted = True
+        # 1. Add to Solid > Modify Panel
+        solid_panel = ui.allToolbarPanels.itemById('SolidModifyPanel')
+        if solid_panel:
+            ctrl_solid = solid_panel.controls.addCommand(cmdDef)
+            ctrl_solid.isPromoted = True
+            
+        # 2. Add to Sketch > Modify Panel
+        sketch_panel = ui.allToolbarPanels.itemById('SketchModifyPanel')
+        if sketch_panel:
+            ctrl_sketch = sketch_panel.controls.addCommand(cmdDef)
+            ctrl_sketch.isPromoted = True
             
         onDocActivated = MyDocActivatedHandler()
         app.documentActivated.add(onDocActivated)
         handlers.append(onDocActivated)
+        
+        # --- NEW: Register the Global Command Listener ---
+        onCmdTerminated = MyCommandTerminatedHandler()
+        ui.commandTerminated.add(onCmdTerminated)
+        handlers.append(onCmdTerminated)
+        
     except:
         if ui: ui.messageBox('Run Failed:\n{}'.format(traceback.format_exc()))
 
@@ -268,6 +324,14 @@ def stop(context):
     try:
         if ui.palettes.itemById(palette_id): ui.palettes.itemById(palette_id).deleteMe()
         if ui.commandDefinitions.itemById(command_id): ui.commandDefinitions.itemById(command_id).deleteMe()
-        panel = ui.allToolbarPanels.itemById('SolidModifyPanel')
-        if panel and panel.controls.itemById(command_id): panel.controls.itemById(command_id).deleteMe()
+        
+        # Clean up from Solid panel
+        solid_panel = ui.allToolbarPanels.itemById('SolidModifyPanel')
+        if solid_panel and solid_panel.controls.itemById(command_id): 
+            solid_panel.controls.itemById(command_id).deleteMe()
+            
+        # Clean up from Sketch panel
+        sketch_panel = ui.allToolbarPanels.itemById('SketchModifyPanel')
+        if sketch_panel and sketch_panel.controls.itemById(command_id): 
+            sketch_panel.controls.itemById(command_id).deleteMe()
     except: pass
