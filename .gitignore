@@ -46,6 +46,8 @@ Output/
 # ----------------------
 # 6. Other Misc Files
 # ----------------------
+Archive/
+
 # Affiity Desktop
 *.af
 
