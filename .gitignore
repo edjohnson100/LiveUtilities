@@ -51,6 +51,7 @@ resources/plugins.json
 
 # Affiity Desktop
 *.af
+resources/*.af
 
 # Allow the "Installers" folder itself...
 !Installers/
