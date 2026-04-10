@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.4.0  
+**Version:** 1.4.2 
 **Author:** Ed Johnson (Making With An EdJ)
 
 LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, batch exporting, and a global macro script launcher into a single, clean interface.
