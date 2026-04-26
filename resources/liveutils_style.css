@@ -12,6 +12,7 @@
     --input-bg: #ffffff;
     --input-border: #cccccc;
     --input-text: #333333;
+    --input-placeholder: #aaaaaa;
     --toggle-bg: #ccc;
     --header-hover: #e8e8e8;
     --tab-bg: #e0e0e0;
@@ -47,6 +48,7 @@
     --input-bg: #3f3f3f;
     --input-border: #666666;
     --input-text: #ffffff;
+    --input-placeholder: #888888;
     --toggle-bg: #555;
     --header-hover: #333333;
     --tab-bg: #1a1a1a;
@@ -68,7 +70,7 @@
     --status-info-text: #cce5ff;
 }
 
-/* 3. Ocean (Deep blue, cool UI) */
+/* 3. Ocean */
 [data-theme="Ocean"] {
     --font-family: 'Segoe UI', Tahoma, sans-serif;
     --font-size-base: 13px;
@@ -82,6 +84,7 @@
     --input-bg: #0f172a;
     --input-border: #475569;
     --input-text: #f8fafc;
+    --input-placeholder: #64748b;
     --toggle-bg: #475569;
     --header-hover: #334155;
     --tab-bg: #0f172a;
@@ -103,10 +106,10 @@
     --status-info-text: #bfdbfe;
 }
 
-/* 4. Hacker (Terminal green on true black) */
+/* 4. Hacker */
 [data-theme="Hacker"] {
     --font-family: 'Consolas', 'Courier New', monospace;
-    --font-size-base: 14px;
+    --font-size-base: 16px;
     --bg-body: #0a0a0a;
     --text-main: #00ff00;
     --text-sub: #00aa00;
@@ -117,6 +120,7 @@
     --input-bg: #050505;
     --input-border: #005500;
     --input-text: #00ff00;
+    --input-placeholder: #005500;
     --toggle-bg: #004400;
     --header-hover: #002200;
     --tab-bg: #000000;
@@ -138,7 +142,7 @@
     --status-info-text: #0088ff;
 }
 
-/* 5. Solarized Dark (Low-eyestrain cyan/blue) */
+/* 5. Solarized Dark */
 [data-theme="Solarized Dark"] {
     --font-family: 'Segoe UI', Tahoma, sans-serif;
     --font-size-base: 13px;
@@ -152,6 +156,7 @@
     --input-bg: #002b36;
     --input-border: #586e75;
     --input-text: #93a1a1;
+    --input-placeholder: #586e75;
     --toggle-bg: #586e75;
     --header-hover: #0e4a5c;
     --tab-bg: #002b36;
@@ -173,7 +178,7 @@
     --status-info-text: #268bd2;
 }
 
-/* 6. Gruvbox Light (Warm, retro developer favorite) */
+/* 6. Gruvbox Light */
 [data-theme="Gruvbox Light"] {
     --font-family: 'Segoe UI', Tahoma, sans-serif;
     --font-size-base: 13px;
@@ -187,6 +192,7 @@
     --input-bg: #f9f5d7;
     --input-border: #bdae93;
     --input-text: #3c3836;
+    --input-placeholder: #a89984;
     --toggle-bg: #bdae93;
     --header-hover: #e8d2a6;
     --tab-bg: #d5c4a1;
@@ -208,7 +214,7 @@
     --status-info-text: #076678;
 }
 
-/* 7. Warm Sepia (Paper-like, easy reading) */
+/* 7. Warm Sepia */
 [data-theme="Warm Sepia"] {
     --font-family: Georgia, 'Times New Roman', Times, serif;
     --font-size-base: 13px;
@@ -222,6 +228,7 @@
     --input-bg: #ffffff;
     --input-border: #c4b49c;
     --input-text: #433422;
+    --input-placeholder: #bbaaa0;
     --toggle-bg: #c4b49c;
     --header-hover: #f0e3cc;
     --tab-bg: #eadecc;
@@ -243,7 +250,7 @@
     --status-info-text: #2f4f4f;
 }
 
-/* 8. Solarized Light (Low-contrast, warm beige) */
+/* 8. Solarized Light */
 [data-theme="Solarized Light"] {
     --font-family: 'Segoe UI', Tahoma, sans-serif;
     --font-size-base: 13px;
@@ -257,6 +264,7 @@
     --input-bg: #fdf6e3;
     --input-border: #93a1a1;
     --input-text: #586e75;
+    --input-placeholder: #93a1a1;
     --toggle-bg: #93a1a1;
     --header-hover: #e4ddc4;
     --tab-bg: #eee8d5;
@@ -278,21 +286,51 @@
     --status-info-text: #268bd2;
 }
 
+/* 9. Hot Pink */
+[data-theme="Hot Pink"] {
+    --font-family: 'Segoe UI', Tahoma, sans-serif;
+    --font-size-base: 16px;
+    --bg-body: #f5f5f5;
+    --text-main: #333333;
+    --text-sub: #666666;
+    --border-color: #dddddd;
+    --row-bg: #ffffff;
+    --row-border: #cccccc;
+    --row-hover: #e8e8e8;
+    --input-bg: #ffffff;
+    --input-border: #cccccc;
+    --input-text: #333333;
+    --input-placeholder: #aaaaaa;
+    --toggle-bg: #ccc;
+    --header-hover: #e8e8e8;
+    --tab-bg: #e0e0e0;
+    --tab-active-bg: #ffffff;
+    --tab-text: #666666;
+    --tab-active-text: #0078d4;
+    --btn-primary: #e401dd;
+    --btn-primary-hover: #bc10ad;
+    --btn-success: #29a6a8;
+    --btn-success-hover: #218687;
+    --btn-secondary: #e0e0e0;
+    --btn-secondary-hover: #d0d0d0;
+    --btn-secondary-text: #333333;
+    --status-success-bg: #d7eeee;
+    --status-success-text: #155652;
+    --status-error-bg: #f7d4f0;
+    --status-error-text: #721c24;
+    --status-info-bg: #feffcc;
+    --status-info-text: #828500;
+}
+
 body { background-color: var(--bg-body); color: var(--text-main); font-family: var(--font-family); margin: 0; padding: 15px; font-size: var(--font-size-base); transition: background-color 0.3s, color 0.3s; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
 h2 { margin: 0 0 2px 0; font-size: calc(var(--font-size-base) + 1px); text-transform: uppercase; letter-spacing: 1px; }
 .sub-header { color: var(--text-sub); font-size: calc(var(--font-size-base) - 2px); font-style: italic; }
 
 /* TABS */
-.tabs { 
-    display: flex; 
-    border-bottom: 2px solid var(--border-color); 
-    margin-bottom: 15px; 
-    flex-wrap: wrap; 
-}
+.tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; }
 .tab-btn { 
-    flex: 1 1 auto; 
-    width: auto;
+    flex: 1; 
     background: var(--tab-bg); 
     color: var(--tab-text); 
     border: none; 
@@ -303,7 +341,7 @@ h2 { margin: 0 0 2px 0; font-size: calc(var(--font-size-base) + 1px); text-trans
     transition: 0.2s; 
 
     /* --- NEW SIZING & OVERFLOW RULES --- */
-    font-size: calc(var(--font-size-base) - 1px);        /* Shrink the text slightly */
+    font-size: calc(var(--font-size-base) - 1px); /* Shrink the text slightly */
     white-space: nowrap;    /* Force text to stay on a single line */
     overflow: hidden;       /* Clip the text if the palette gets too narrow */
     text-overflow: ellipsis;/* Add '...' if the text gets clipped */
@@ -334,9 +372,32 @@ textarea { height: 80px; margin-bottom: 10px; resize: vertical; }
 .input-group button { width: auto; white-space: nowrap; }
 /* Placeholder text visibility */
 ::placeholder {
-    color: #aaaaaa; 
+    color: var(--input-placeholder); 
     opacity: 1; /* Forces browsers like Firefox to not fade the text */
 }
+
+/* CHECKBOXES & RADIOS (Standard) */
+input[type="checkbox"]:not(.switch input), input[type="radio"] { 
+    accent-color: var(--btn-primary); 
+    width: 14px; height: 14px; margin: 0; cursor: pointer; 
+}
+
+/* RANGE SLIDERS */
+input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; margin: 5px 0; }
+input[type="range"]:focus { outline: none; }
+input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--toggle-bg); border-radius: 2px; }
+input[type="range"]::-webkit-slider-thumb { height: 14px; width: 14px; border-radius: 50%; background: var(--btn-primary); cursor: pointer; -webkit-appearance: none; margin-top: -5px; transition: transform 0.1s; }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* SCROLLBARS (Webkit - Chrome/Edge/Fusion Browser) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-sub); }
+::-webkit-scrollbar-corner { background: var(--bg-body); }
+
+/* DIVIDERS */
+hr.divider { border: 0; border-top: 1px solid var(--border-color); margin: 15px 0; }
 
 /* SECTIONS & GRIDS */
 .section { margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; }
@@ -373,11 +434,11 @@ textarea { height: 80px; margin-bottom: 10px; resize: vertical; }
 .theme-switch input { display: none; }
 .theme-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--toggle-bg); transition: .4s; border-radius: 34px; }
 .theme-slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .theme-slider { background-color: #0078d4; }
+.theme-switch input:checked + .theme-slider { background-color: var(--btn-primary); }
 input:checked + .theme-slider:before { transform: translateX(16px); }
 .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-input:checked + .theme-slider { background-color: #28a745; }
+.switch input:checked + .theme-slider { background-color: var(--btn-success); }
 
 /* MODAL */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -385,6 +446,8 @@ input:checked + .theme-slider { background-color: #28a745; }
 .modal-content h3 { margin: 0 0 5px 0; font-size: calc(var(--font-size-base) + 1px); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
 .modal-label { font-size: calc(var(--font-size-base) - 2px); color: var(--text-sub); font-weight: bold; margin-bottom: -5px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
-.modal-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-.btn-cancel { background: var(--input-border); color: var(--text-main); }
-.btn-save { background: #0078d4; color: white; }
+.modal-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.btn-cancel { background: var(--btn-secondary); color: var(--btn-secondary-text); }
+.btn-cancel:hover { background: var(--btn-secondary-hover); }
+.btn-save { background: var(--btn-primary); color: white; }
+.btn-save:hover { background: var(--btn-primary-hover); }
