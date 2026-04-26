@@ -1,0 +1,29 @@
+# LiveUtilities Changelog
+
+## ✨ What's New in v1.4.2
+
+* **Telepathic Auto-Sync:** LiveUtilities now actively listens to Fusion's native command stream. Whether you `Undo`, `Redo`, alter a parameter through Fusion's native dialog, rename a timeline feature, or delete/expand a group, the palette instantly and silently updates to match your workspace. 
+* **Sketch Environment Integration:** You no longer need to exit a sketch to manage your parameters! The Live Utilities launcher has been added directly to the `Sketch > Modify` panel for seamless access while dimensioning.
+* **Stop Sketch & Compute Sweeps:** The add-in automatically sweeps for background parameter changes the exact second you finish a sketch or force a global recalculation (`Compute All`), keeping your math perfectly in sync.
+
+---
+## ✨ What's New in v1.4.1
+
+* **The Macro Sandbox (Protected Execution):** Complex native scripts (like Fusion's sample `SpurGear`) often contain `adsk.terminate()` commands that accidentally kill the entire LiveUtilities dashboard when they finish. v1.4.1 introduces a system-level sandbox that intercepts and neutralizes these commands, keeping your palette alive.
+* **Package Spoofing:** We added dynamic namespace spoofing to the `importlib` executor. This allows you to link complex scripts that rely on relative imports (`from . import`) without throwing package errors.
+* **UI Polish & Auto-Sorting:** Your linked macros now automatically sort themselves alphabetically (A-Z) in both the launcher and the script manager. The launcher buttons have also been tightened up for a sleeker profile.
+* **Cleaner Version History:** The `C-log:` prefix has been removed from standard design saves to free up screen real estate in Fusion's Data Panel. Milestones are now cleanly marked with a `🚩` emoji so you can visually spot them instantly when scrolling through dozens of saved versions.
+
+---
+## ✨ What's New in v1.4.0
+
+* **The Macro Board (Scripts Tab):** LiveUtilities is now a true command center. You can link your favorite standalone Python scripts (like Gridfinity generators or Canvas Greyscale tools) and launch them directly from the new "Scripts" tab. 
+* **Smart Directory Picker:** When linking a new script, the add-in automatically resolves Fusion's deeply hidden system paths. With one click, you can jump directly to your personal Scripts folder, Add-ins folder, or even the dynamically hashed native Fusion Sample Scripts folder.
+* **Global Plugin Registry:** Your linked scripts are saved globally, meaning your favorite macros are always available in the palette regardless of which Fusion file you have open.
+
+---
+## ✨ What's New in v1.3.1
+
+* **Expanded Theme Engine:** We ditched the basic Light/Dark switch for a persistent, multi-theme selector. Customizations include Ocean Blue, Hacker Green, Warm Sepia, Solarized (Light & Dark), and Gruvbox Light.
+* **Persistent UI Memory:** Your selected theme and active tab are now saved locally.
+* **Auto-Sorting UI:** Parameters and Configuration Snapshots now automatically sort themselves alphabetically (A-Z).

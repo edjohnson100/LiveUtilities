@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-theme="dark">
+<html>
 <head>
     <link rel="stylesheet" href="liveutils_style.css">
     <title>Live Utilities</title>
@@ -12,20 +12,9 @@
         </div>
         
         <div style="display: flex; align-items: center; gap: 15px;">
-            <button class="icon-btn" onclick="refreshData()" title="Rescan Model" style="padding: 4px 8px; font-size: 14px;">↻</button>
-            <select id="themeSelector" onchange="changeTheme()" title="Select Theme" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); cursor: pointer; outline: none; margin-top: 5px;">
-                <optgroup label="Light Themes">
-                    <option value="light">Light (Default)</option>
-                    <option value="gruvbox-light">Gruvbox Light</option>
-                    <option value="sepia">Warm Sepia</option>
-                    <option value="solarized-light">Solarized Light</option>
-                </optgroup>
-                <optgroup label="Dark Themes">
-                    <option value="dark">Classic Dark</option>
-                    <option value="ocean">Ocean Blue</option>
-                    <option value="hacker">Hacker Green</option>
-                    <option value="solarized">Solarized Dark</option>
-                </optgroup>
+            <button class="icon-btn" onclick="refreshData()" title="Rescan Model" style="padding: 4px 8px; font-size: calc(var(--font-size-base) + 1px);">↻</button>
+            <select id="themeSelector" onchange="changeTheme()" title="Select Theme" style="font-size: calc(var(--font-size-base) - 1px); padding: 4px 8px; border-radius: 4px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); cursor: pointer; outline: none; margin-top: 5px;">
+                <option value="Default Light">Default Light</option>
             </select>
         </div>
     </div>
@@ -35,6 +24,7 @@
         <button class="tab-btn" onclick="switchTab('tab-config')">Config</button>
         <button class="tab-btn" onclick="switchTab('tab-changelog')">Changelog</button>
         <button class="tab-btn" onclick="switchTab('tab-scripts')">Scripts</button>
+        <button class="tab-btn" onclick="switchTab('tab-themes')">Themes</button>
     </div>
 
     <div id="statusMessage" class="status-box"></div>
@@ -75,12 +65,12 @@
         </div>
 
         <div id="paramList" class="data-container">
-            <h3 style="margin-top: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-size: 13px;">User Parameters</h3>
+            <h3 style="margin-top: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-size: var(--font-size-base);">User Parameters</h3>
             <div id="userParamList" class="data-container">
                 <div class="empty-state">Loading parameters...</div>
             </div>
 
-            <h3 style="margin-top: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-size: 13px;">Model Parameters</h3>
+            <h3 style="margin-top: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-size: var(--font-size-base);">Model Parameters</h3>
             <div id="modelParamList" class="data-container">
                 <div class="empty-state">Loading model parameters...</div>
             </div>
@@ -120,13 +110,13 @@
         
         <div class="section">
             <div class="section-content" style="display: block;">
-                <label style="font-size: 12px; font-weight: bold; margin-bottom: 5px; display: block;">Add Log Entry:</label>
+                <label style="font-size: calc(var(--font-size-base) - 1px); font-weight: bold; margin-bottom: 5px; display: block;">Add Log Entry:</label>
                 <textarea id="newEntryText" placeholder="What did you change?"></textarea>
                 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <div>
                         <input type="checkbox" id="autosaveCheck" checked> 
-                        <label for="autosaveCheck" style="cursor:pointer; font-size: 12px;">Autosave Design</label>
+                        <label for="autosaveCheck" style="cursor:pointer; font-size: calc(var(--font-size-base) - 1px);">Autosave Design</label>
                     </div>
                 </div>
                 <button class="btn-primary" onclick="sendLogEntry()">Save Entry</button>
@@ -146,8 +136,8 @@
                 <button class="btn-secondary" style="margin-bottom: 15px;" onclick="exportLog()">Export Changelog to File</button>
 
                 <div style="border-top: 1px solid var(--border-color); padding-top: 10px;">
-                    <label style="font-size: 11px; font-weight: bold; color: var(--text-sub); margin-bottom: 5px; display: block;">BATCH EXPORT CONFIGS</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: 12px;">
+                <label style="font-size: calc(var(--font-size-base) - 2px); font-weight: bold; color: var(--text-sub); margin-bottom: 5px; display: block;">BATCH EXPORT CONFIGS</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 8px; font-size: calc(var(--font-size-base) - 1px);">
                         <label><input type="checkbox" id="expSTEP" checked> STEP</label>
                         <label><input type="checkbox" id="expSTL" checked> STL</label>
                         <label><input type="checkbox" id="exp3MF" checked> 3MF</label>
@@ -172,7 +162,44 @@
                 <button class="btn-primary" style="margin-bottom: 15px;" onclick="document.getElementById('linkMacroModal').style.display='flex'">➕ Link New Script</button>
                 
                 <div id="scriptManagerList" class="data-container">
-                    <div class="empty-state" style="font-size: 11px;">No scripts to manage.</div>
+                <div class="empty-state" style="font-size: calc(var(--font-size-base) - 2px);">No scripts to manage.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-themes" class="tab-content">
+        <div class="section" id="sec-theme-manager">
+            <div class="section-header" onclick="toggleSection('sec-theme-manager')">
+                <h3>Theme Manager</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content data-container">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: calc(var(--font-size-base) - 2px); font-weight: bold; color: var(--text-sub);">Font Family</label>
+                        <select id="fontFamilySelector" onchange="updateActiveThemeProperty('--font-family', this.value)" style="margin-top: 3px;">
+                            <option value="'Segoe UI', Tahoma, sans-serif">Sans-serif</option>
+                            <option value="Georgia, 'Times New Roman', Times, serif">Serif</option>
+                            <option value="'Consolas', 'Courier New', monospace">Monospace</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: calc(var(--font-size-base) - 2px); font-weight: bold; color: var(--text-sub);">Base Font Size</label>
+                        <select id="fontSizeSelector" onchange="updateActiveThemeProperty('--font-size-base', this.value)" style="margin-top: 3px;">
+                            <option value="11px">11px</option><option value="12px">12px</option><option value="13px">13px</option>
+                            <option value="14px">14px</option><option value="15px">15px</option><option value="16px">16px</option>
+                            <option value="17px">17px</option><option value="18px">18px</option>
+                        </select>
+                    </div>
+                </div>
+            <p style="font-size: calc(var(--font-size-base) - 1px); margin-top: 0; color: var(--text-sub);">Import custom themes via a JSON theme export or batch import custom style.css files.</p>
+                <div class="create-grid">
+                    <button class="btn-primary" onclick="requestImport('css')">📥 Import style.css</button>
+                    <button class="btn-primary" onclick="requestExport('css')">📤 Export style.css</button>
+                    <button class="btn-secondary" onclick="requestImport('json')">📂 Import .json</button>
+                    <button class="btn-secondary" onclick="requestExport('json')">💾 Export .json</button>
+                    <button class="btn-secondary full-width" onclick="resetThemeCache()" style="color: #d9534f; border-color: #d9534f;">🗑️ Factory Reset Theme Cache</button>
                 </div>
             </div>
         </div>
@@ -196,7 +223,7 @@
     <div id="linkMacroModal" class="modal-overlay">
         <div class="modal-content">
             <h3>Link a Python Script</h3>
-            <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">
+        <p style="font-size: calc(var(--font-size-base) - 2px); color: var(--text-sub); margin-bottom: 10px;">
                 Where is the script located? We'll jump directly to the folder.
             </p>
             

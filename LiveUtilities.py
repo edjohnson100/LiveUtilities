@@ -89,6 +89,16 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
             elif action == 'export_log':
                 core_logic.export_log_logic()
                 return
+                
+            elif action == 'export_theme':
+                core_logic.export_theme_logic(data.get('file_type'), data.get('content'), data.get('default_name'))
+                return
+                
+            elif action == 'import_theme':
+                payload = core_logic.import_theme_logic(data.get('file_type'))
+                if payload and palette:
+                    palette.sendInfoToHTML('theme_imported', payload)
+                return
 
             # --- MACRO ROUTING ---
             elif action == 'link_external_script':
@@ -241,10 +251,15 @@ class MyCommandTerminatedHandler(adsk.core.ApplicationCommandEventHandler):
                 'ChangeParametersCommand',
                 'RenameCommand',         
                 'BrowserRenameCommand',  
+                'TimelineGroupCommand',            # Native Timeline Grouping
+                'TimelineUngroupCommand',          # Native Timeline Ungrouping
                 'SuppressCommand',       
                 'UnsuppressCommand',     
                 'FusionDeleteCommand',             # Catches standard deletions
                 'FusionExpandGroupFeatureCommand', # Catches 'Delete and expand contents'
+                'FusionCreateGroupFeatureCommand', # Catches native timeline group creation
+                'FusionRenameTimelineEntryCommand',# Catches native timeline entry renaming
+                'FJL_Generate_Joints_Cmd',         # Custom: FJL Joints Add-in
                 'StopSketchCommand',     
                 'ComputeAllCommand'      
             ]

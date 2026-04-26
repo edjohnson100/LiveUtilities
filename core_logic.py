@@ -712,6 +712,48 @@ def create_milestone_logic(reason):
         try: doc.save(f'🚩 {reason[:50]}')
         except: pass
 
+def export_theme_logic(file_type, content, default_name):
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    fileDialog = ui.createFileDialog()
+    fileDialog.title = 'Export Theme'
+    if file_type == 'css':
+        fileDialog.filter = 'CSS Files (*.css);;All Files (*.*)'
+    else:
+        fileDialog.filter = 'JSON Files (*.json);;All Files (*.*)'
+        
+    resources_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
+    fileDialog.initialDirectory = resources_dir
+    fileDialog.initialFilename = default_name
+    if fileDialog.showSave() == adsk.core.DialogResults.DialogOK:
+        try:
+            with open(fileDialog.filename, 'w', encoding='utf-8') as f:
+                f.write(content)
+            ui.messageBox(f'Theme exported to {fileDialog.filename}')
+        except Exception as e:
+            ui.messageBox(f'Failed to save theme:\n{str(e)}')
+
+def import_theme_logic(file_type):
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    fileDialog = ui.createFileDialog()
+    fileDialog.title = 'Import Theme'
+    if file_type == 'css':
+        fileDialog.filter = 'CSS Files (*.css);;All Files (*.*)'
+    else:
+        fileDialog.filter = 'JSON Files (*.json);;All Files (*.*)'
+        
+    resources_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
+    fileDialog.initialDirectory = resources_dir
+    if fileDialog.showOpen() == adsk.core.DialogResults.DialogOK:
+        try:
+            with open(fileDialog.filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return json.dumps({"file_type": file_type, "content": content})
+        except Exception as e:
+            ui.messageBox(f'Failed to read theme:\n{str(e)}')
+    return None
+
 def export_log_logic():
     app = adsk.core.Application.get()
     ui = app.userInterface

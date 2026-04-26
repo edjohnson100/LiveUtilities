@@ -1,6 +1,7 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.4.2 
+**Version:** 1.4.3
+
 **Author:** Ed Johnson (Making With An EdJ)
 
 LiveUtilities is an all-in-one HTML palette add-in for Autodesk Fusion that supercharges your parametric modeling workflow. It consolidates live parameter management, state-based configuration snapshots, automated changelog tracking, batch exporting, and a global macro script launcher into a single, clean interface.
@@ -18,35 +19,14 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 **LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
 
 ---
-## ✨ What's New in v1.4.2
+## ✨ What's New in v1.4.3
 
-* **Telepathic Auto-Sync:** LiveUtilities now actively listens to Fusion's native command stream. Whether you `Undo`, `Redo`, alter a parameter through Fusion's native dialog, rename a timeline feature, or delete/expand a group, the palette instantly and silently updates to match your workspace. 
-* **Sketch Environment Integration:** You no longer need to exit a sketch to manage your parameters! The Live Utilities launcher has been added directly to the `Sketch > Modify` panel for seamless access while dimensioning.
-* **Stop Sketch & Compute Sweeps:** The add-in automatically sweeps for background parameter changes the exact second you finish a sketch or force a global recalculation (`Compute All`), keeping your math perfectly in sync.
+* **Theme Manager Tab:** Added a dedicated 5th tab to manage UI themes dynamically without leaving Fusion.
+* **Custom Fonts & Scaling:** Instantly tweak the base font size and font family directly from the palette—no CSS coding required! Perfect for high-resolution monitors or accessibility needs.
+* **Import/Export Engine:** Export your customized themes as individual `.json` files or batch export all custom themes as a `style.css` master override.
+* **Responsive Tabs:** The UI tabs now neatly wrap and scale to accommodate the new features without crowding the interface.
 
----
-## ✨ What's New in v1.4.1
-
-* **The Macro Sandbox (Protected Execution):** Complex native scripts (like Fusion's sample `SpurGear`) often contain `adsk.terminate()` commands that accidentally kill the entire LiveUtilities dashboard when they finish. v1.4.1 introduces a system-level sandbox that intercepts and neutralizes these commands, keeping your palette alive.
-* **Package Spoofing:** We added dynamic namespace spoofing to the `importlib` executor. This allows you to link complex scripts that rely on relative imports (`from . import`) without throwing package errors.
-* **UI Polish & Auto-Sorting:** Your linked macros now automatically sort themselves alphabetically (A-Z) in both the launcher and the script manager. The launcher buttons have also been tightened up for a sleeker profile.
-* **Cleaner Version History:** The `C-log:` prefix has been removed from standard design saves to free up screen real estate in Fusion's Data Panel. Milestones are now cleanly marked with a `🚩` emoji so you can visually spot them instantly when scrolling through dozens of saved versions.
-
----
-## ✨ What's New in v1.4.0
-
-* **The Macro Board (Scripts Tab):** LiveUtilities is now a true command center. You can link your favorite standalone Python scripts (like Gridfinity generators or Canvas Greyscale tools) and launch them directly from the new "Scripts" tab. 
-* **Smart Directory Picker:** When linking a new script, the add-in automatically resolves Fusion's deeply hidden system paths. With one click, you can jump directly to your personal Scripts folder, Add-ins folder, or even the dynamically hashed native Fusion Sample Scripts folder.
-* **Global Plugin Registry:** Your linked scripts are saved globally, meaning your favorite macros are always available in the palette regardless of which Fusion file you have open.
-
----
-## ✨ What's New in v1.3.1
-
-* **Expanded Theme Engine:** We ditched the basic Light/Dark switch for a persistent, multi-theme selector. Customizations include Ocean Blue, Hacker Green, Warm Sepia, Solarized (Light & Dark), and Gruvbox Light.
-* **Persistent UI Memory:** Your selected theme and active tab are now saved locally.
-* **Auto-Sorting UI:** Parameters and Configuration Snapshots now automatically sort themselves alphabetically (A-Z).
-
----
+*For older release notes, please see the **CHANGELOG**.*
 
 ## Installation
 
@@ -74,7 +54,8 @@ This script requires a quick manual installation. You can choose to install it i
 
 ### The Global Interface
 
-Clicking the Live Utilities button opens a persistent palette docked to the right side of your Fusion workspace. 
+Clicking the Live Utilities button opens a persistent palette docked to the right side of your Fusion workspace. The palette window can be relocated anywhere on your desktop, even outside the boundaries of Fusion.
+
 * **Tabbed Navigation:** Seamlessly switch between Parameters, Config, Changelog, and Scripts.
 * **Theme Toggle:** Switch between multiple developer-friendly themes using the dropdown in the header.
 * **Auto-Sync & Global Refresh:** The palette automatically refreshes whenever you switch to a different active document. You can also manually hit the **↻** button in the header to rescan the model at any time.
@@ -86,7 +67,7 @@ Keep your parameters docked on the side while you design. Tweak dimensions and s
 
 * **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately. The expression fields auto-expand dynamically.
 * **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch.
-* **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters."
+* **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters." These are the parameters you create on the fly when adding a dimension like "height = 50mm".
 * **Creation:** Expand the "Add Parameter" section to create new ones on the fly. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
 * **Rename & Edit Comments:** Click the **Pencil (✎)** icon next to a parameter to safely rename it or update its comment.
 * **The "Orphaned Parameter" Safety Net:** LiveUtilities automatically tracks any renamed Model Parameter. Even if you unfavorite it, it stays pinned in your LiveUtilities sidebar under "Model Parameters."
@@ -94,17 +75,17 @@ Keep your parameters docked on the side while you design. Tweak dimensions and s
 ---
 
 ### Tab 2: Live Config
-The missing "Configuration Manager" for Fusion. Save specific combinations of parameters and feature states (Suppressed/Unsuppressed) as named Snapshots.
+The missing "Configuration Manager" for Fusion for free hobbyist users. Save specific combinations of parameters and feature states (Suppressed/Unsuppressed) as named Snapshots.
 
 * **Snapshots:** Once you have your parameters and toggles set exactly how you like them, type a name and click **Save State**. Switch between snapshots with a single click.
 * **Auto-Detect & Dirty Tracking:** The active configuration glows green, turns red if modified, and automatically recognizes if you've manually matched a different saved snapshot.
 * **Tracked Features (The `CFG_` Magic):** Want to toggle timeline features on and off? Rename a timeline feature or group to start with `CFG_` (e.g., `CFG_Holes`). Click Global Refresh (**↻**). It will appear in the palette!
-* **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it.
+* **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it. *(Note: LiveUtilites is required to view and use the saved configurations and changelog entries)*.
 
 ---
 
 ### Tab 3: Changelog & Utilities
-A dedicated space to log your thoughts, decisions, and milestones. Because the logs are stored inside the Fusion file's attributes, the history travels with the design.
+A dedicated space to log your thoughts, decisions, and milestones. Because the logs are stored inside the Fusion file's attributes, the history travels with the design. *(Note: LiveUtilites is required to view and use the saved configurations and changelog entries)*.
 
 * **The Input Palette:** Type your notes here. Checking "Autosave Design" will force a new Fusion version when saving the entry.
 * **Milestones and Utilities:**
@@ -121,10 +102,22 @@ A global launcher for your favorite standalone Python scripts.
 * **Launch:** Click any linked script in the main list to instantly execute it without having to open Fusion's "Scripts and Add-Ins" dialog. 
 * **Persistence:** Your linked macros are saved to a global registry, so they are always available no matter what design you are working on.
 
+### Tab 5: Themes (Theme Manager)
+Customize the look and feel of LiveUtilities to match your workspace, monitor size, and accessibility needs.
+
+**👉 Create custom themes instantly with the web-based [Theme Designer Pro](https://edjohnson100.github.io/ThemeDesigner/ThemeDesigner.html)!**
+*(Visit the **[Theme Designer Repository](https://github.com/edjohnson100/ThemeDesigner)** to read the "How to Use with LiveUtilities" guide).*
+
+* **Font Controls:** Use the dropdowns to instantly change the Font Family (Sans-serif, Serif, Monospace) and Base Font Size (11px - 18px). Your choices are automatically saved!
+* **Import/Export `.json`:** Want to share a specific theme? Export it as a `.json` file. I've included a sample `Hot Pink.theme.json` in the `resources` folder for you to try out.
+* **Batch CSS Overrides:** If you export a `style.css` file directly into the `resources` folder, LiveUtilities will use it as the permanent default. You can test the CSS importer by loading the included `style-ej.css` sample!
+* **Factory Reset:** Messed up your colors or fonts? Click the **🗑️ Factory Reset Theme Cache** button to flush the browser's memory and restore the default built-in themes or revert to your style.css file if you previously saved one.
+
 ---
 
 ## 🧰 Companion Tool: AttributeNukerPlus
-If you ever need to surgically clean up hidden legacy JSON attributes from your Fusion files, check out my standalone companion utility, **AttributeNukerPlus**.
+If you ever need to surgically clean up hidden legacy JSON attributes from your Fusion files, check out my standalone companion utility, **AttributeNukerPlus**. It's a handy addition for the `Scripts` tab in LiveUtilities!
+
 👉 **[Download AttributeNukerPlus Here](https://github.com/edjohnson100/AttributeNukerPlus)**
 
 ---

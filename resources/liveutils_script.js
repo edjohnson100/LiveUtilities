@@ -3,11 +3,26 @@ let lastReceivedData = null;
 let searchQuery = "";
 let statusTimeout;
 
+// --- THEME MANAGER STATE ---
+const cssVariables = [
+    '--font-family', '--font-size-base', 
+    '--bg-body', '--text-main', '--text-sub', '--border-color',
+    '--row-bg', '--row-border', '--row-hover',
+    '--input-bg', '--input-border', '--input-text', '--input-placeholder', '--toggle-bg',
+    '--header-hover', '--tab-bg', '--tab-active-bg', '--tab-text', '--tab-active-text',
+    '--btn-primary', '--btn-primary-hover', '--btn-success', '--btn-success-hover',
+    '--btn-secondary', '--btn-secondary-hover', '--btn-secondary-text',
+    '--status-success-bg', '--status-success-text',
+    '--status-error-bg', '--status-error-text',
+    '--status-info-bg', '--status-info-text'
+];
+let themes = {};
+let baseCSS = "";
+let customThemes = JSON.parse(localStorage.getItem('edj_custom_themes') || '{}');
+
 document.addEventListener('DOMContentLoaded', function() {
-    const savedTheme = localStorage.getItem('edj_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    const themeSelector = document.getElementById('themeSelector');
-    if (themeSelector) themeSelector.value = savedTheme;
+    const savedTheme = localStorage.getItem('edj_theme') || 'Default Light';
+    initThemes(savedTheme);
 
     const savedTab = localStorage.getItem('edj_active_tab') || 'tab-params';
     switchTab(savedTab);
@@ -23,10 +38,176 @@ document.addEventListener('DOMContentLoaded', function() {
     waitForFusion();
 });
 
+function initThemes(savedTheme) {
+    fetch('style.css')
+    .then(r => {
+        if (!r.ok) throw new Error('Not found');
+        return r.text().then(text => {
+            let style = document.getElementById('imported-style-css');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'imported-style-css';
+            }
+            document.head.appendChild(style);
+            style.innerHTML = text;
+            return text;
+        });
+    })
+    .catch(() => fetch('liveutils_style.css').then(res => res.text()))
+    .then(css => {
+        const parsed = parseStyleCSS(css);
+        themes = parsed.themes;
+        baseCSS = parsed.baseCSS;
+        
+        for (let id in customThemes) {
+            if (!themes[id]) themes[id] = {};
+            Object.assign(themes[id], customThemes[id]);
+        }
+        updateThemeDropdown();
+        updateStyleTag();
+        
+        const themeSelector = document.getElementById('themeSelector');
+        if (themeSelector && (themes[savedTheme] || savedTheme === 'Default Light')) {
+            themeSelector.value = savedTheme;
+        }
+        changeTheme();
+    }).catch(e => console.log('Theme CSS fetch failed:', e));
+}
+
+function parseStyleCSS(cssText) {
+    const themeRegex = /(?:\/\*[\s\S]*?\*\/\s*)?(?:(:root)|\[data-theme=["']?([^"']+)["']?\])\s*\{([^}]+)\}/g;
+    let match;
+    let parsedThemes = {};
+    while ((match = themeRegex.exec(cssText)) !== null) {
+        let themeId = match[1] ? "Default Light" : match[2];
+        let content = match[3];
+        let vars = {};
+        // Safely extract variables even if a trailing semicolon is missing
+        const varRegex = /(--[\w-]+)\s*:\s*([^;]+?)(?=\s*;|\s*$)/g;
+        let vMatch;
+        while ((vMatch = varRegex.exec(content)) !== null) {
+            vars[vMatch[1].trim()] = vMatch[2].trim();
+        }
+        parsedThemes[themeId] = vars;
+    }
+    let cleanCSS = cssText.replace(themeRegex, '').trim();
+    return { themes: parsedThemes, baseCSS: cleanCSS };
+}
+
+function generateFullCSS() {
+    let out = "";
+    let i = 1;
+    for (let id in themes) {
+        let comment = id === "Default Light" ? "Default Light" : id;
+        let sel = id === "Default Light" ? ":root" : `[data-theme="${id}"]`;
+        out += `/* ${i}. ${comment} */\n${sel} {\n`;
+        for (let v of cssVariables) {
+            if (themes[id][v]) out += `    ${v}: ${themes[id][v]};\n`;
+        }
+        out += `}\n\n`;
+        i++;
+    }
+    return out + baseCSS;
+}
+
+function updateThemeDropdown() {
+    const select = document.getElementById('themeSelector');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="Default Light">Default Light</option>';
+    for (let id in themes) {
+        if (id === "Default Light") continue;
+        let opt = document.createElement('option');
+        opt.value = id; opt.text = id;
+        select.appendChild(opt);
+    }
+    if (current && [...select.options].some(o => o.value === current)) select.value = current;
+}
+
+function updateStyleTag() {
+    let out = "";
+    for (let id in customThemes) {
+        let sel = id === "Default Light" ? ":root" : `[data-theme="${id}"]`;
+        out += `${sel} {\n`;
+        for (let v of cssVariables) {
+            if (customThemes[id][v]) out += `    ${v}: ${customThemes[id][v]};\n`;
+        }
+        out += `}\n`;
+    }
+    let styleTag = document.getElementById('dynamic-theme-overrides');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'dynamic-theme-overrides';
+    }
+    // Force append to end of head to ensure highest CSS specificity
+    document.head.appendChild(styleTag);
+    styleTag.innerHTML = out;
+}
+
+function updateActiveThemeProperty(prop, value) {
+    const themeSelector = document.getElementById('themeSelector');
+    const themeId = themeSelector ? themeSelector.value : 'Default Light';
+    
+    if (!customThemes[themeId]) customThemes[themeId] = {};
+    if (!themes[themeId]) themes[themeId] = {};
+    
+    customThemes[themeId][prop] = value;
+    themes[themeId][prop] = value;
+    localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+    updateStyleTag();
+}
+
+function requestImport(type) { sendToFusion('import_theme', { file_type: type }); }
+function requestExport(type) {
+    const themeSelector = document.getElementById('themeSelector');
+    if (!themeSelector) return;
+    const id = themeSelector.value;
+    if (type === 'json' && id === 'Default Light') return showStatus({message: "Select a custom theme to export as JSON.", type: "error"});
+    const content = type === 'json' ? JSON.stringify({ id: id, vars: themes[id] }, null, 2) : generateFullCSS();
+    const defaultName = type === 'json' ? `${id}.theme.json` : 'style.css';
+    sendToFusion('export_theme', { file_type: type, content: content, default_name: defaultName });
+}
+
+function resetThemeCache() {
+    if(confirm("This will permanently delete all custom imported themes and font overrides. Continue?")) {
+        localStorage.removeItem('edj_custom_themes');
+        localStorage.removeItem('edj_theme');
+        customThemes = {};
+        
+        let styleTag = document.getElementById('dynamic-theme-overrides');
+        if (styleTag) styleTag.remove();
+        
+        let importedTag = document.getElementById('imported-style-css');
+        if (importedTag) importedTag.remove();
+        
+        showStatus({message: "Theme cache wiped. Reloading defaults...", type: "success"});
+        initThemes('Default Light');
+    }
+}
+
 function changeTheme() {
-    const theme = document.getElementById('themeSelector').value;
-    document.documentElement.setAttribute('data-theme', theme);
+    const themeSelector = document.getElementById('themeSelector');
+    if (!themeSelector) return;
+    const theme = themeSelector.value;
+    if (theme === 'Default Light') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', theme);
+    }
     localStorage.setItem('edj_theme', theme);
+
+    const currentVars = themes[theme] || {};
+    const fontFam = document.getElementById('fontFamilySelector');
+    const fontSize = document.getElementById('fontSizeSelector');
+    if (fontFam && currentVars['--font-family']) {
+        let fam = currentVars['--font-family'].replace(/"/g, "'");
+        let match = Array.from(fontFam.options).find(o => o.value === fam);
+        if (match) fontFam.value = match.value;
+    }
+    if (fontSize && currentVars['--font-size-base']) {
+        let match = Array.from(fontSize.options).find(o => o.value === currentVars['--font-size-base']);
+        if (match) fontSize.value = match.value;
+    }
 }
 
 function switchTab(tabId) {
@@ -38,6 +219,9 @@ function switchTab(tabId) {
     for(let btn of btns) {
         if(btn.getAttribute('onclick').includes(tabId)) {
             btn.classList.add('active');
+            if (btn.scrollIntoView) {
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
             break;
         }
     }
@@ -48,6 +232,7 @@ function switchTab(tabId) {
         else if (tabId === 'tab-config') titleEl.innerText = 'LIVE CONFIG';
         else if (tabId === 'tab-changelog') titleEl.innerText = 'CHANGELOG SIDECAR';
         else if (tabId === 'tab-scripts') titleEl.innerText = 'MACRO BOARD';
+        else if (tabId === 'tab-themes') titleEl.innerText = 'THEME MANAGER';
     }
     
     localStorage.setItem('edj_active_tab', tabId);
@@ -63,6 +248,40 @@ window.fusionJavaScriptHandler = {
             const parsed = typeof data === 'string' ? JSON.parse(data) : data;
             if (action === 'update_ui') renderUI(parsed);
             else if (action === 'notification') showStatus(parsed);
+            else if (action === 'theme_imported') {
+                if (parsed.file_type === 'css') {
+                    const parsedCSS = parseStyleCSS(parsed.content);
+                    Object.assign(themes, parsedCSS.themes);
+                    Object.assign(customThemes, parsedCSS.themes);
+                    localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+                    updateThemeDropdown(); 
+                    updateStyleTag();
+                    
+                    // Auto-select the first non-default theme from the imported file
+                    const customKeys = Object.keys(parsedCSS.themes).filter(k => k !== "Default Light");
+                    const themeSelector = document.getElementById('themeSelector');
+                    if (themeSelector && customKeys.length > 0) {
+                        themeSelector.value = customKeys[0];
+                    }
+                    
+                    changeTheme();
+                    showStatus({message: "CSS Theme(s) Imported Successfully", type: "success"});
+                } else if (parsed.file_type === 'json') {
+                    try {
+                        const themeData = JSON.parse(parsed.content);
+                        if (themeData.vars && themeData.id !== undefined) {
+                            themes[themeData.id] = themeData.vars;
+                            customThemes[themeData.id] = themeData.vars;
+                            localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+                            updateThemeDropdown(); updateStyleTag();
+                            const themeSelector = document.getElementById('themeSelector');
+                            if (themeSelector) themeSelector.value = themeData.id;
+                            changeTheme();
+                            showStatus({message: `Theme '${themeData.id}' Imported`, type: "success"});
+                        }
+                    } catch(e) { showStatus({message: "Invalid JSON theme format.", type: "error"}); }
+                }
+            }
         } catch (e) { console.error(e); }
         return "OK";
     }
@@ -202,7 +421,7 @@ function renderConfigs(configs, activeConfig, isDirty) {
         if (name === activeConfig) {
             if (isDirty) {
                 combinedStyle += ' border-color: #dc3545; color: #dc3545;';
-                dirtyIndicator = '<span style="font-size: 10px; opacity: 0.8; margin-left: 5px;">(Modified)</span>';
+            dirtyIndicator = '<span style="font-size: calc(var(--font-size-base) - 3px); opacity: 0.8; margin-left: 5px;">(Modified)</span>';
             } else {
                 combinedStyle += ' border-color: #28a745; color: #28a745;';
             }
@@ -258,7 +477,7 @@ function renderScripts(scripts) {
 
     if (!scripts || scripts.length === 0) {
         launcherContainer.innerHTML = '<div class="empty-state">No scripts linked. Open the Script Manager to add some!</div>';
-        managerContainer.innerHTML = '<div class="empty-state" style="font-size: 11px;">No scripts to manage.</div>';
+        managerContainer.innerHTML = '<div class="empty-state" style="font-size: calc(var(--font-size-base) - 2px);">No scripts to manage.</div>';
         return;
     }
 
@@ -268,8 +487,8 @@ function renderScripts(scripts) {
 
         // Updated Launcher Button: Switched to btn-success, reduced padding and font size for a sleeker profile.
         launcherContainer.innerHTML += `
-            <button class="btn-success" style="padding: 9px 12px; margin-bottom: 6px; font-size: 12px; text-align: left; display: flex; align-items: center; justify-content: flex-start; gap: 8px;" onclick="sendToFusion('launch_script', {path: decodeURIComponent('${encodedPath}')})">
-                <span style="opacity: 0.8; font-size: 10px;">▶</span> ${safeName}
+            <button class="btn-success" style="padding: 9px 12px; margin-bottom: 6px; font-size: calc(var(--font-size-base) - 1px); text-align: left; display: flex; align-items: center; justify-content: flex-start; gap: 8px;" onclick="sendToFusion('launch_script', {path: decodeURIComponent('${encodedPath}')})">
+                <span style="opacity: 0.8; font-size: calc(var(--font-size-base) - 3px);">▶</span> ${safeName}
             </button>
         `;
 
