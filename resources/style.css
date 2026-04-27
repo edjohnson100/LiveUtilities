@@ -328,9 +328,15 @@ h2 { margin: 0 0 2px 0; font-size: calc(var(--font-size-base) + 1px); text-trans
 .sub-header { color: var(--text-sub); font-size: calc(var(--font-size-base) - 2px); font-style: italic; }
 
 /* TABS */
-.tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; }
+.tabs { 
+    display: flex; 
+    border-bottom: 2px solid var(--border-color); 
+    margin-bottom: 15px; 
+    flex-wrap: wrap; 
+}
 .tab-btn { 
-    flex: 1; 
+    flex: 1 1 auto; 
+    width: auto;
     background: var(--tab-bg); 
     color: var(--tab-text); 
     border: none; 

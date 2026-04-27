@@ -528,7 +528,7 @@ def update_parameter(name, expression):
     try:
         app = adsk.core.Application.get()
         design = app.activeProduct
-        param = design.userParameters.itemByName(name)
+        param = design.allParameters.itemByName(name)
         
         if not param:
             return json.dumps({"message": "Parameter not found", "type": "error"})
@@ -565,7 +565,7 @@ def update_parameter_attributes(old_name, new_name, comment):
         app = adsk.core.Application.get()
         design = app.activeProduct
         
-        param = design.userParameters.itemByName(old_name)
+        param = design.allParameters.itemByName(old_name)
         if not param:
             return json.dumps({"message": "Parameter not found", "type": "error"})
             
@@ -578,7 +578,7 @@ def update_parameter_attributes(old_name, new_name, comment):
             except Exception as e:
                 return json.dumps({"message": "Invalid Name (Avoid spaces/symbols)", "type": "error"})
         
-        param = design.userParameters.itemByName(new_name)
+        param = design.allParameters.itemByName(new_name)
         if param:
             param.comment = str(comment)
 
