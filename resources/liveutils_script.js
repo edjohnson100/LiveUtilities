@@ -18,13 +18,13 @@ const cssVariables = [
 ];
 let themes = {};
 let baseCSS = "";
-let customThemes = JSON.parse(localStorage.getItem('edj_custom_themes') || '{}');
+let customThemes = JSON.parse(localStorage.getItem('LU_custom_themes') || '{}');
 
 document.addEventListener('DOMContentLoaded', function() {
-    const savedTheme = localStorage.getItem('edj_theme') || 'Default Light';
+    const savedTheme = localStorage.getItem('LU_theme') || 'Default Light';
     initThemes(savedTheme);
 
-    const savedTab = localStorage.getItem('edj_active_tab') || 'tab-params';
+    const savedTab = localStorage.getItem('LU_activeTab') || 'tab-params';
     switchTab(savedTab);
 
     document.getElementById('favFilterCheck').addEventListener('change', e => {
@@ -153,7 +153,7 @@ function updateActiveThemeProperty(prop, value) {
     
     customThemes[themeId][prop] = value;
     themes[themeId][prop] = value;
-    localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+    localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
     updateStyleTag();
 }
 
@@ -170,8 +170,8 @@ function requestExport(type) {
 
 function resetThemeCache() {
     if(confirm("This will permanently delete all custom imported themes and font overrides. Continue?")) {
-        localStorage.removeItem('edj_custom_themes');
-        localStorage.removeItem('edj_theme');
+        localStorage.removeItem('LU_custom_themes');
+        localStorage.removeItem('LU_theme');
         customThemes = {};
         
         let styleTag = document.getElementById('dynamic-theme-overrides');
@@ -194,7 +194,7 @@ function changeTheme() {
     } else {
         document.documentElement.setAttribute('data-theme', theme);
     }
-    localStorage.setItem('edj_theme', theme);
+    localStorage.setItem('LU_theme', theme);
 
     const currentVars = themes[theme] || {};
     const fontFam = document.getElementById('fontFamilySelector');
@@ -235,7 +235,7 @@ function switchTab(tabId) {
         else if (tabId === 'tab-themes') titleEl.innerText = 'THEME MANAGER';
     }
     
-    localStorage.setItem('edj_active_tab', tabId);
+    localStorage.setItem('LU_activeTab', tabId);
 }
 
 function toggleSection(id) {
@@ -253,7 +253,7 @@ window.fusionJavaScriptHandler = {
                     const parsedCSS = parseStyleCSS(parsed.content);
                     Object.assign(themes, parsedCSS.themes);
                     Object.assign(customThemes, parsedCSS.themes);
-                    localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+                    localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
                     updateThemeDropdown(); 
                     updateStyleTag();
                     
@@ -272,7 +272,7 @@ window.fusionJavaScriptHandler = {
                         if (themeData.vars && themeData.id !== undefined) {
                             themes[themeData.id] = themeData.vars;
                             customThemes[themeData.id] = themeData.vars;
-                            localStorage.setItem('edj_custom_themes', JSON.stringify(customThemes));
+                            localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
                             updateThemeDropdown(); updateStyleTag();
                             const themeSelector = document.getElementById('themeSelector');
                             if (themeSelector) themeSelector.value = themeData.id;
