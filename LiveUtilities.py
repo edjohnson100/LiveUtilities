@@ -139,6 +139,16 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
             # ==========================================
             # 2. WRITE ACTIONS (Requires Safety Check)
             # ==========================================
+            write_actions = [
+                'update_param', 'update_attributes', 'toggle_favorite', 'create_param', 
+                'delete_param', 'export_configs', 'rename_snapshot', 'toggle_feature', 
+                'save_snapshot', 'delete_snapshot', 'load_snapshot', 'merge_groups', 
+                'add_entry', 'create_milestone'
+            ]
+            
+            if action not in write_actions:
+                return # Ignore unknown pings or cross-palette broadcasts
+                
             if self.is_unsafe(palette):
                 return
 
@@ -203,6 +213,13 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 core_logic.apply_snapshot(data.get('config_name'))
                 if palette: palette.sendInfoToHTML('update_ui', core_logic.scan_all())
 
+            elif action == 'merge_groups':
+                payload = core_logic.merge_selected_cfg_groups(data.get('target_name', 'Merged_State'))
+                if palette: 
+                    palette.sendInfoToHTML('notification', payload)
+                    if json.loads(payload).get('type') == 'success':
+                        palette.sendInfoToHTML('update_ui', payload)
+
             # --- CHANGELOG ROUTING ---
             elif action == 'add_entry':
                 core_logic.add_entry_logic(data.get('note'), data.get('autosave'))
@@ -227,6 +244,62 @@ class MyDocActivatedHandler(adsk.core.DocumentEventHandler):
         except: pass 
 
 # --- NEW: Undo / Redo / Parameter Change / Timeline Listener ---
+class MyActiveSelectionEventHandler(adsk.core.ActiveSelectionEventHandler):
+    def __init__(self):
+        super().__init__()
+        self.last_timeline_hash = ""
+    
+    def notify(self, args):
+        try:
+            palette = ui.palettes.itemById(palette_id)
+            if not palette or not palette.isVisible:
+                return
+
+            selections = ui.activeSelections
+            group_names = []
+            seen_indices = set()
+            
+            for i in range(selections.count):
+                obj = selections.item(i).entity
+                
+                # --- DIAGNOSTIC SNIFFER ---
+                # text_palette = ui.palettes.itemById('TextCommands')
+                # if text_palette and text_palette.isVisible:
+                #     text_palette.writeText(f"⚙️ Selection caught: {type(obj).__name__} (isGroup: {getattr(obj, 'isGroup', 'N/A')})")
+                
+                if not obj: continue
+                
+                grp = None
+                if type(obj).__name__ == 'TimelineGroup':
+                    grp = obj
+                elif type(obj).__name__ == 'TimelineObject' and getattr(obj, 'isGroup', False):
+                    for tg in design.timeline.timelineGroups:
+                        if tg.index == obj.index:
+                            grp = tg
+                            break
+                elif hasattr(obj, 'timelineObject') and obj.timelineObject and obj.timelineObject.parentGroup:
+                    grp = obj.timelineObject.parentGroup
+                    
+                if grp and grp.index not in seen_indices:
+                    seen_indices.add(grp.index)
+                    group_names.append(grp.name)
+            
+            palette.sendInfoToHTML('selection_changed', json.dumps({'count': len(group_names), 'names': group_names}))
+            
+            # --- NEW: Silent auto-refresh for background timeline additions (like FingerJointsLive generation) ---
+            app = adsk.core.Application.get()
+            design = app.activeProduct
+            if design:
+                current_hash = f"{design.timeline.count}_{design.allParameters.count}"
+                if getattr(self, 'last_timeline_hash', "") != current_hash:
+                    self.last_timeline_hash = current_hash
+                    payload = core_logic.scan_all()
+                    palette.sendInfoToHTML('update_ui', payload)
+                    core_logic.generate_and_open_report(open_browser=False)
+
+        except:
+            pass
+
 class MyCommandTerminatedHandler(adsk.core.ApplicationCommandEventHandler):
     def __init__(self): 
         super().__init__()
@@ -289,7 +362,7 @@ class MyPaletteCloseHandler(adsk.core.UserInterfaceGeneralEventHandler):
     def notify(self, args): pass
 
 def run(context):
-    global ui, app, onCmdTerminated
+    global ui, app, onCmdTerminated, onSelectionChanged
     try:
         app = adsk.core.Application.get()
         ui = app.userInterface
@@ -331,6 +404,11 @@ def run(context):
         onCmdTerminated = MyCommandTerminatedHandler()
         ui.commandTerminated.add(onCmdTerminated)
         handlers.append(onCmdTerminated)
+        
+        # --- NEW: Register the Active Selection Listener ---
+        onSelectionChanged = MyActiveSelectionEventHandler()
+        ui.activeSelectionChanged.add(onSelectionChanged)
+        handlers.append(onSelectionChanged)
         
     except:
         if ui: ui.messageBox('Run Failed:\n{}'.format(traceback.format_exc()))

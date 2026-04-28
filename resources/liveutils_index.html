@@ -3,6 +3,14 @@
 <head>
     <link rel="stylesheet" href="liveutils_style.css">
     <title>Live Utilities</title>
+    <style>
+        /* Give snapshot buttons a primary color hover effect so they aren't overwhelming when resting */
+        .snapshot-btn:hover {
+            background-color: var(--btn-primary) !important;
+            border-color: var(--btn-primary) !important;
+            color: #fff !important;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -89,7 +97,24 @@
                 </div>
                 <div class="input-group">
                     <input type="text" id="newConfigName" placeholder="New Config Name...">
-                    <button class="btn-secondary" onclick="saveSnapshot()">Save State</button>
+                    <button class="btn-primary" onclick="saveSnapshot()">Save State</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section collapsed" id="sec-regroup">
+            <div class="section-header" onclick="toggleSection('sec-regroup')">
+                <h3>Regroup Features</h3>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="section-content">
+                <div class="input-group" style="margin-bottom: 10px;">
+                    <input type="text" id="newMergedGroupName" placeholder="New Group Name (e.g. 18mm_Box)...">
+                    <button id="regroupBtn" class="btn-primary" onclick="mergeSelectedGroups()" disabled>Regroup</button>
+                </div>
+                <div style="font-size: calc(var(--font-size-base) - 2px); color: var(--text-sub); margin-bottom: 10px; margin-top: -5px;">Note: 'CFG_' is automatically prepended to the new group name</div>
+                <div id="selectedGroupsArea" class="data-container">
+                    <div class="empty-state" id="regroupEmptyState">Select a contiguous block of grouped features to continue.</div>
                 </div>
             </div>
         </div>
@@ -216,6 +241,18 @@
             <div class="modal-actions">
                 <button class="modal-btn btn-cancel" onclick="closeEditModal()">Cancel</button>
                 <button class="modal-btn btn-save" onclick="saveEditModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="confirmModalTitle">Please Confirm</h3>
+            <p id="confirmModalMessage" style="font-size: calc(var(--font-size-base) - 1px); margin-bottom: 15px; color: var(--text-main);"></p>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+                <button class="modal-btn btn-save" onclick="executeConfirmModal()">Yes</button>
             </div>
         </div>
     </div>

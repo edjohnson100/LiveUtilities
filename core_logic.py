@@ -512,6 +512,72 @@ def batch_export_configs(export_step, export_stl, export_3mf):
         
     return json.dumps({"message": f"Exported {success_count} files successfully.", "type": "success"})
 
+def merge_selected_cfg_groups(target_name="Merged_State"):
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    design = app.activeProduct
+    
+    if not isinstance(design, adsk.fusion.Design):
+        return json.dumps({"message": "Please run this inside a valid Fusion design workspace.", "type": "error"})
+
+    selections = ui.activeSelections
+    selected_groups = []
+    seen_indices = set()
+    features_to_group = []
+    
+    for i in range(selections.count):
+        obj = selections.item(i).entity
+        if not obj: continue
+        
+        grp = None
+        if type(obj).__name__ == 'TimelineGroup':
+            grp = obj
+        elif type(obj).__name__ == 'TimelineObject' and getattr(obj, 'isGroup', False):
+            # Fusion timeline groups wrap their underlying group in a TimelineObject.
+            # We need the actual TimelineGroup to manipulate it properly.
+            for tg in design.timeline.timelineGroups:
+                if tg.index == obj.index:
+                    grp = tg
+                    break
+        elif hasattr(obj, 'timelineObject') and obj.timelineObject and obj.timelineObject.parentGroup:
+            grp = obj.timelineObject.parentGroup
+            features_to_group.append(obj)
+            
+        if grp and grp.index not in seen_indices:
+            seen_indices.add(grp.index)
+            selected_groups.append(grp)
+            
+    if not selected_groups:
+        return json.dumps({"message": "Please select the CFG_ groups you want to merge in the timeline.", "type": "error"})
+
+    if not features_to_group:
+        return json.dumps({"message": "No features found inside the selected groups.", "type": "error"})
+
+    for grp in selected_groups:
+        grp.deleteMe(False)  # False = Delete group but keep contents
+
+    adsk.doEvents()
+
+    indices = []
+    for feat in features_to_group:
+        if hasattr(feat, 'timelineObject') and feat.timelineObject:
+            indices.append(feat.timelineObject.index)
+
+    if indices:
+        try:
+            new_group = design.timeline.timelineGroups.add(min(indices), max(indices))
+            if not target_name.startswith("CFG_"): target_name = "CFG_" + target_name
+            new_group.name = target_name
+            
+            scan_result = json.loads(scan_all())
+            scan_result["message"] = f"Merged into '{target_name}'"
+            scan_result["type"] = "success"
+            return json.dumps(scan_result)
+        except Exception as e:
+            return json.dumps({"message": f"Failed to group. Ensure selections are contiguous.\nError: {e}", "type": "error"})
+            
+    return json.dumps({"message": "Failed to locate features after ungrouping.", "type": "error"})
+
 # ==============================================================================
 # PARAMETER LOGIC
 # ==============================================================================

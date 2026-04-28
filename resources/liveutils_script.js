@@ -3,6 +3,7 @@ let lastReceivedData = null;
 let searchQuery = "";
 let statusTimeout;
 
+let currentSelectedGroups = 0; // Tracks timeline group selection count
 // --- THEME MANAGER STATE ---
 const cssVariables = [
     '--font-family', '--font-size-base', 
@@ -33,6 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('searchInput').addEventListener('input', e => {
         searchQuery = e.target.value.toLowerCase();
         if (lastReceivedData) renderUI(lastReceivedData);
+    });
+
+    document.getElementById('newMergedGroupName').addEventListener('input', e => {
+        validateRegroupState();
     });
 
     waitForFusion();
@@ -168,8 +173,25 @@ function requestExport(type) {
     sendToFusion('export_theme', { file_type: type, content: content, default_name: defaultName });
 }
 
+// --- CUSTOM CONFIRM MODAL ---
+let pendingConfirmAction = null;
+function showConfirmModal(title, message, actionCallback) {
+    document.getElementById('confirmModalTitle').innerText = title;
+    document.getElementById('confirmModalMessage').innerText = message;
+    pendingConfirmAction = actionCallback;
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+function closeConfirmModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+    pendingConfirmAction = null;
+}
+function executeConfirmModal() {
+    if (pendingConfirmAction) pendingConfirmAction();
+    closeConfirmModal();
+}
+
 function resetThemeCache() {
-    if(confirm("This will permanently delete all custom imported themes and font overrides. Continue?")) {
+    showConfirmModal('Factory Reset', "This will permanently delete all custom imported themes and font overrides. Continue?", function() {
         localStorage.removeItem('LU_custom_themes');
         localStorage.removeItem('LU_theme');
         customThemes = {};
@@ -182,7 +204,7 @@ function resetThemeCache() {
         
         showStatus({message: "Theme cache wiped. Reloading defaults...", type: "success"});
         initThemes('Default Light');
-    }
+    });
 }
 
 function changeTheme() {
@@ -281,6 +303,19 @@ window.fusionJavaScriptHandler = {
                         }
                     } catch(e) { showStatus({message: "Invalid JSON theme format.", type: "error"}); }
                 }
+            } else if (action === 'selection_changed') {
+                currentSelectedGroups = parsed.count;
+                const area = document.getElementById('selectedGroupsArea');
+                if (currentSelectedGroups > 0) {
+                    let html = `<div style="font-size: calc(var(--font-size-base) - 2px); font-weight: bold; margin-bottom: 5px;">Selected Groups (${parsed.count}):</div>`;
+                    parsed.names.forEach(name => {
+                        html += `<div class="data-row" style="padding: 4px 8px; min-height: unset; margin-bottom: 4px;"><span class="row-label">${name}</span></div>`;
+                    });
+                    area.innerHTML = html;
+                } else {
+                    area.innerHTML = `<div class="empty-state" id="regroupEmptyState">Select a contiguous block of grouped features to continue.</div>`;
+                }
+                validateRegroupState();
             }
         } catch (e) { console.error(e); }
         return "OK";
@@ -432,13 +467,13 @@ function renderConfigs(configs, activeConfig, isDirty) {
 
         container.innerHTML += `
             <div class="data-row">
-                <button class="btn-secondary" style="${combinedStyle}" onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">
+                <button class="btn-secondary snapshot-btn" style="${combinedStyle}" onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">
                     ${safeNameDisplay}${dirtyIndicator}
                 </button>
                 <div class="row-controls">
                     <button class="action-btn" title="Rename" onclick="renameSnapshot(decodeURIComponent('${encodedName}'))">✎</button>
-                    <button class="action-btn" title="Update" onclick="if(confirm('Update ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('save_snapshot', {config_name: decodeURIComponent('${encodedName}')})">💾</button>
-                    <button class="action-btn del-btn" title="Delete" onclick="if(confirm('Delete ' + decodeURIComponent('${encodedName}') + '?')) sendToFusion('delete_snapshot', {config_name: decodeURIComponent('${encodedName}')})">×</button>
+                    <button class="action-btn" title="Update" onclick="showConfirmModal('Update Snapshot', 'Update ' + decodeURIComponent('${encodedName}') + '?', function(){ sendToFusion('save_snapshot', {config_name: decodeURIComponent('${encodedName}')}) })">💾</button>
+                    <button class="action-btn del-btn" title="Delete" onclick="showConfirmModal('Delete Snapshot', 'Delete ' + decodeURIComponent('${encodedName}') + '?', function(){ sendToFusion('delete_snapshot', {config_name: decodeURIComponent('${encodedName}')}) })">×</button>
                 </div>
             </div>
         `;
@@ -496,7 +531,7 @@ function renderScripts(scripts) {
             <div class="data-row" style="margin-bottom: 4px;">
                 <span class="row-label" title="${script.path}">${safeName}</span>
                 <div class="row-controls">
-                    <button class="action-btn del-btn" title="Unlink" onclick="if(confirm('Unlink ${safeName}?')) sendToFusion('unlink_script', {path: decodeURIComponent('${encodedPath}')})">×</button>
+                    <button class="action-btn del-btn" title="Unlink" onclick="showConfirmModal('Unlink Script', 'Unlink ${safeName}?', function(){ sendToFusion('unlink_script', {path: decodeURIComponent('${encodedPath}')}) })">×</button>
                 </div>
             </div>
         `;
@@ -523,7 +558,11 @@ function createParam() {
     });
 }
 
-function deleteParam(name) { if(confirm(`Delete parameter '${name}'?`)) sendToFusion('delete_param', {name: name}); }
+function deleteParam(name) { 
+    showConfirmModal('Delete Parameter', `Delete parameter '${name}'?`, function() {
+        sendToFusion('delete_param', {name: name});
+    });
+}
 function toggleCustomUnit(sel) { document.getElementById('custom_unit').style.display = (sel.value === 'OTHER') ? 'block' : 'none'; }
 
 function openEditModal(name, comm) {
@@ -540,6 +579,27 @@ function saveEditModal() {
         comment: document.getElementById('editModalComment').value
     });
     closeEditModal();
+}
+
+function validateRegroupState() {
+    const btn = document.getElementById('regroupBtn');
+    const nameInput = document.getElementById('newMergedGroupName');
+    if (btn && nameInput) {
+        if (currentSelectedGroups > 0 && nameInput.value.trim().length > 0) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+}
+
+function mergeSelectedGroups() {
+    let newName = document.getElementById('newMergedGroupName').value.trim();
+    if (newName) {
+        newName = newName.replace(/^CFG_/i, ''); // Strip manually typed prefix
+        sendToFusion('merge_groups', { target_name: newName });
+        document.getElementById('newMergedGroupName').value = '';
+    }
 }
 
 function saveSnapshot() {
