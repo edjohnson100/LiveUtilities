@@ -581,6 +581,17 @@ def merge_selected_cfg_groups(target_name="Merged_State"):
 # ==============================================================================
 # PARAMETER LOGIC
 # ==============================================================================
+def _needs_text_quoting(expression, design):
+    if expression.startswith("'"):
+        return False
+    if "'" in expression:
+        return False
+    if any(op in expression for op in ['+', '*', '/', '%', '^', '(', ';', '>', '<', '=']):
+        return False
+    if re.match(r'^[a-zA-Z_]\w*$', expression) and design.allParameters.itemByName(expression):
+        return False
+    return True
+
 def validate_expression(expression, unit):
     try:
         app = adsk.core.Application.get()
@@ -599,9 +610,12 @@ def update_parameter(name, expression):
         if not param:
             return json.dumps({"message": "Parameter not found", "type": "error"})
 
-        if not validate_expression(expression, param.unit):
+        if param.unit == 'Text':
+            if _needs_text_quoting(expression, design):
+                expression = f"'{expression}'"
+        elif not validate_expression(expression, param.unit):
             return json.dumps({
-                "message": f"Invalid value for unit ({param.unit})", 
+                "message": f"Invalid value for unit ({param.unit})",
                 "type": "error"
             })
 
@@ -665,9 +679,14 @@ def create_parameter(name, unit, expression, comment):
         if design.allParameters.itemByName(name):
             return json.dumps({"message": f"Parameter '{name}' already exists", "type": "error"})
 
-        if not validate_expression(expression, unit):
+        if unit == 'Text':
+            # Text parameters: isValidExpression doesn't handle string literals, so skip it.
+            # Only auto-wrap if the expression is a bare literal, not a param reference or compound expression.
+            if _needs_text_quoting(expression, design):
+                expression = f"'{expression}'"
+        elif not validate_expression(expression, unit):
             return json.dumps({
-                "message": f"Invalid expression for unit ({unit})", 
+                "message": f"Invalid expression for unit ({unit})",
                 "type": "error"
             })
 
@@ -883,7 +902,7 @@ def generate_and_open_report(open_browser=True):
             --tag-bg: #0f352e; --tag-text: #4cc9f0; --meta-text: #666666;
             --shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: var(--bg-body); color: var(--text-primary); line-height: 1.6; transition: 0.3s; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: var(--bg-body); border: 2px solid var(--btn-primary); color: var(--text-primary); line-height: 1.6; transition: 0.3s; }
         .container { max-width: 850px; margin: 0 auto; background: var(--bg-container); padding: 30px; border-radius: 8px; box-shadow: var(--shadow); position: relative; }
         .header-row { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 15px; border-bottom: 3px solid var(--header-border); margin-bottom: 20px; }
         .title-block h1 { margin: 0; padding: 0; color: var(--header-text); font-size: 24px; }

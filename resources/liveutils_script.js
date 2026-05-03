@@ -112,7 +112,14 @@ function generateFullCSS() {
         out += `}\n\n`;
         i++;
     }
-    return out + baseCSS;
+    let css = baseCSS;
+    if (css.includes('background-color: var(--bg-body);') && !css.includes('border: 2px solid var(--btn-primary)')) {
+        css = css.replace(
+            'background-color: var(--bg-body);',
+            'background-color: var(--bg-body); border: 2px solid var(--btn-primary);'
+        );
+    }
+    return out + css;
 }
 
 function updateThemeDropdown() {
@@ -548,7 +555,7 @@ function createParam() {
     }
 
     const unitSel = document.getElementById('new_unit').value;
-    const unit = (unitSel === 'OTHER') ? document.getElementById('custom_unit').value : (unitSel === 'TEXT' ? '' : unitSel);
+    const unit = (unitSel === 'OTHER') ? document.getElementById('custom_unit').value : (unitSel === 'TEXT' ? 'Text' : unitSel);
     
     sendToFusion('create_param', {
         name: nameField,

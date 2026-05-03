@@ -1,6 +1,13 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.4.5
+
+* **Text Parameter Support:** Creating and editing `Text` type parameters now works correctly end-to-end. LiveUtilities automatically handles the single-quote wrapping that Fusion requires — just type your value. Simple literals, parameter references, concatenation expressions, and conditional expressions all work directly from the palette.
+* **Batch Export moved to Config tab:** The Batch Export Configs utility has been relocated from the Changelog tab to the bottom of the Config tab, where it logically belongs alongside your saved snapshots.
+* **Theme accent border:** All built-in and custom themes now render a subtle primary-color border around the palette body. Legacy `style.css` files are automatically upgraded when exported from ThemeDesigner.
+
+---
 ## ✨ What's New in v1.4.4
 
 * **Regroup Features:** Clean up your timeline! You can now select a contiguous block of `CFG_` timeline groups and merge them into a single, consolidated group directly from the Live Config tab.

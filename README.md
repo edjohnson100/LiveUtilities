@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.4.4
+**Version:** 1.4.5
 
 **Author:** Ed Johnson (Making With An EdJ)
 
@@ -19,6 +19,12 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 **LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
 
 ---
+## ✨ What's New in v1.4.5
+
+* **Text Parameter Support:** Creating and editing `Text` type parameters now works correctly. LiveUtilities automatically handles quoting, so you can type a bare string (`hello world`), a parameter reference (`boxBottomDepth`), a concatenation expression (`'Width: ' + boxWidth`), or a conditional (`if(boxWidth > 200 mm; 'Large'; 'Small')`) and it just works. See the [Text Parameter Expression Reference](#text-parameter-expression-reference) below for full syntax details and known Fusion limitations.
+* **Batch Export moved to Config tab:** The Batch Export Configs utility has been relocated from the Changelog tab to the bottom of the Config tab, where it logically belongs alongside your saved snapshots.
+* **Theme border:** All built-in and custom themes now render a subtle accent border around the palette body. ThemeDesigner and legacy `style.css` files are automatically upgraded when exported.
+
 ## ✨ What's New in v1.4.4
 
 * **Regroup Features:** Clean up your timeline! You can now select a contiguous block of `CFG_` timeline groups and merge them into a single, consolidated group directly from the Live Config tab.
@@ -62,7 +68,7 @@ This script requires a quick manual installation. You can choose to install it i
 
 Clicking the Live Utilities button opens a persistent palette docked to the right side of your Fusion workspace. The palette window can be relocated anywhere on your desktop, even outside the boundaries of Fusion.
 
-* **Tabbed Navigation:** Seamlessly switch between Parameters, Config, Changelog, and Scripts.
+* **Tabbed Navigation:** Seamlessly switch between Parameters, Config, Changelog, Scripts, and Themes.
 * **Theme Toggle:** Switch between multiple developer-friendly themes using the dropdown in the header.
 * **Auto-Sync & Global Refresh:** The palette automatically refreshes whenever you switch to a different active document. You can also manually hit the **↻** button in the header to rescan the model at any time.
 
@@ -74,7 +80,7 @@ Keep your parameters docked on the side while you design. Tweak dimensions and s
 * **Live Editing:** Type a new value or expression into any input box and press **Enter** (or click away) to apply it immediately. The expression fields auto-expand dynamically.
 * **Search & Filter:** Instantly filter your parameter list by name using the search bar, or toggle the **★ Favs Only** switch.
 * **Split Categorization:** Clearly separates "User Parameters" from tracked "Model Parameters." These are the parameters you create on the fly when adding a dimension like "height = 50mm".
-* **Creation:** Expand the "Add Parameter" section to create new ones on the fly. *(Note: Text parameters must be enclosed in single quotes, e.g., `'MyText'`)*.
+* **Creation:** Expand the "Add Parameter" section to create new ones on the fly. For `Text` type parameters, see the [expression reference](#text-parameter-expression-reference) below — quoting is handled automatically for simple values.
 * **Rename & Edit Comments:** Click the **Pencil (✎)** icon next to a parameter to safely rename it or update its comment.
 * **The "Orphaned Parameter" Safety Net:** LiveUtilities automatically tracks any renamed Model Parameter. Even if you unfavorite it, it stays pinned in your LiveUtilities sidebar under "Model Parameters."
 
@@ -87,6 +93,7 @@ The missing "Configuration Manager" for Fusion for free hobbyist users. Save spe
 * **Auto-Detect & Dirty Tracking:** The active configuration glows green, turns red if modified, and automatically recognizes if you've manually matched a different saved snapshot.
 * **Tracked Features (The `CFG_` Magic):** Want to toggle timeline features on and off? Rename a timeline feature or group to start with `CFG_` (e.g., `CFG_Holes`). Click Global Refresh (**↻**). It will appear in the palette!
 * **Regroup Features:** Select multiple grouped features in your Fusion timeline, type a new name, and click **Regroup** to instantly consolidate them into a single tracked `CFG_` group.
+* **Batch Export:** Expand the "Batch Export" section at the bottom of this tab to export every saved snapshot as STEP, STL, and/or 3MF files in one operation.
 * **Data Locality:** Snapshots are stored as attributes *inside* the Fusion design file. If you share the file, the configurations travel with it. *(Note: LiveUtilites is required to view and use the saved configurations and changelog entries)*.
 
 ---
@@ -96,8 +103,8 @@ A dedicated space to log your thoughts, decisions, and milestones. Because the l
 
 * **The Input Palette:** Type your notes here. Checking "Autosave Design" will force a new Fusion version when saving the entry.
 * **Milestones and Utilities:**
-    * **Batch Export Configs:** Export every saved configuration state as STEP, STL, and 3MF files in one batch.
     * **Create Milestone:** Archives the current active log into a history block and starts a fresh active log.
+    * **Export Changelog:** Save the current log to a text file.
 * **The Sidecar Dashboard:** Click **📂 OPEN LOG DASHBOARD** to launch a "Live View" of your history in your web browser. Drag it out as a floating window! It auto-refreshes as you type in Fusion.
 
 ---
@@ -118,7 +125,29 @@ Customize the look and feel of LiveUtilities to match your workspace, monitor si
 * **Font Controls:** Use the dropdowns to instantly change the Font Family (Sans-serif, Serif, Monospace) and Base Font Size (11px - 18px). Your choices are automatically saved!
 * **Import/Export `.json`:** Want to share a specific theme? Export it as a `.json` file. I've included a sample `Hot Pink.theme.json` in the `resources` folder for you to try out.
 * **Batch CSS Overrides:** If you export a `style.css` file directly into the `resources` folder, LiveUtilities will use it as the permanent default. You can test the CSS importer by loading the included `style-ej.css` sample!
-* **Factory Reset:** Messed up your colors or fonts? Click the **🗑️ Factory Reset Theme Cache** button to flush the browser's memory and restore the default built-in themes or revert to your style.css file if you previously saved one.
+* **Factory Reset:** If your theme looks wrong — colors from a different theme bleeding through, a theme displaying as the wrong color scheme, or fonts not matching what you set — click the **🗑️ Factory Reset Theme Cache** button. It flushes the browser's `localStorage` and restores the default built-in themes (or your `style.css` override if you have one saved). This is the first thing to try any time the Theme Manager looks off after an update or a settings change.
+
+---
+
+## Text Parameter Expression Reference
+
+When creating or editing a `Text` type parameter, LiveUtilities automatically detects the expression type and handles quoting so you don't have to think about it. Here is what each form looks like and what to expect:
+
+| What you type | What Fusion receives | Result value | Notes |
+|---|---|---|---|
+| `hello world` | `'hello world'` | `hello world` | Bare literals are auto-quoted |
+| `'already quoted'` | `'already quoted'` | `already quoted` | Pre-quoted values pass through unchanged |
+| `boxBottomDepth` | `boxBottomDepth` | `45 mm` | Existing parameter name — passes through as a reference |
+| `gaugeLabel` | `gaugeLabel` | `RADIUS` | Works for Text parameter references too |
+| `'Width: ' + boxWidth` | `'Width: ' + boxWidth` | `Width: 300 mm` | Any expression starting with `'` passes through |
+| `boxLength + ' x ' + boxWidth` | `boxLength + ' x ' + boxWidth` | `225 mm x 300 mm` | Embedded `'` or `+` operator → passes through |
+| `if(boxWidth > 200 mm; 'Large'; 'Small')` | unchanged | `Large` | Full Fusion `if()` syntax supported |
+
+### Known Fusion Limitations
+
+| Situation | Problem | Workaround |
+|---|---|---|
+| `boxCornerRadius ^ 2` | Exponentiation requires a unitless operand — Fusion rejects `mm ^ 2` as a unit | Strip the unit before the operation and reapply it after: `( ( boxCornerRadius / 1 mm ) ^ 2 ) * 1 mm` |
 
 ---
 
