@@ -141,8 +141,8 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
             # ==========================================
             write_actions = [
                 'update_param', 'update_attributes', 'toggle_favorite', 'create_param', 
-                'delete_param', 'export_configs', 'rename_snapshot', 'toggle_feature', 
-                'save_snapshot', 'delete_snapshot', 'load_snapshot', 'merge_groups', 
+                'delete_param', 'export_configs', 'pick_export_folder', 'rename_snapshot', 'toggle_feature', 'toggle_visibility',
+                'save_snapshot', 'delete_snapshot', 'load_snapshot', 'merge_groups',
                 'add_entry', 'create_milestone'
             ]
             
@@ -187,9 +187,17 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
 
             # --- CONFIG ROUTING ---
             elif action == 'export_configs':
-                payload = core_logic.batch_export_configs(data.get('step'), data.get('stl'), data.get('3mf'))
-                if palette: palette.sendInfoToHTML('notification', payload)
+                payload = core_logic.batch_export_configs(data.get('step'), data.get('stl'), data.get('3mf'), data.get('config_names'))
+                if palette: 
+                    palette.sendInfoToHTML('notification', payload)
+                    # If the export was successful, it might have set a new folder path. Refresh the UI.
+                    if json.loads(payload).get('type') == 'success':
+                        palette.sendInfoToHTML('update_ui', core_logic.scan_all())
                 
+            elif action == 'pick_export_folder':
+                payload = core_logic.pick_export_folder()
+                if palette: palette.sendInfoToHTML('update_ui', payload)
+
             elif action == 'rename_snapshot':
                 success = core_logic.rename_snapshot(data.get('old_name'), data.get('new_name'))
                 if success and palette:
@@ -197,6 +205,10 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
 
             elif action == 'toggle_feature':
                 payload = core_logic.toggle_feature(data.get('name'), data.get('is_suppressed'))
+                if palette: palette.sendInfoToHTML('update_ui', payload)
+
+            elif action == 'toggle_visibility':
+                payload = core_logic.toggle_visibility(data.get('name'), data.get('is_visible'))
                 if palette: palette.sendInfoToHTML('update_ui', payload)
 
             elif action == 'save_snapshot':
@@ -326,8 +338,11 @@ class MyCommandTerminatedHandler(adsk.core.ApplicationCommandEventHandler):
                 'BrowserRenameCommand',  
                 'TimelineGroupCommand',            # Native Timeline Grouping
                 'TimelineUngroupCommand',          # Native Timeline Ungrouping
-                'SuppressCommand',       
-                'UnsuppressCommand',     
+                'SuppressCommand',
+                'UnsuppressCommand',
+                'FusionSuppressCommand',           # Timeline suppress (manual click)
+                'FusionUnsuppressCommand',         # Timeline unsuppress (manual click)
+                'VisibilityToggleCmd',             # Browser eye icon (bodies, sketches, components)
                 'FusionDeleteCommand',             # Catches standard deletions
                 'FusionExpandGroupFeatureCommand', # Catches 'Delete and expand contents'
                 'FusionCreateGroupFeatureCommand', # Catches native timeline group creation
@@ -340,7 +355,7 @@ class MyCommandTerminatedHandler(adsk.core.ApplicationCommandEventHandler):
             if args.commandId in triggers:
                 palette = ui.palettes.itemById(palette_id)
                 if palette and palette.isVisible:
-                    # Silently scan and update the HTML UI
+                    adsk.doEvents()
                     payload = core_logic.scan_all()
                     palette.sendInfoToHTML('update_ui', payload)
                     

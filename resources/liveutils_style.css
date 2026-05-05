@@ -353,7 +353,7 @@ h2 { margin: 0 0 2px 0; font-size: calc(var(--font-size-base) + 1px); text-trans
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* BUTTONS */
-button { border: none; padding: 8px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; box-sizing: border-box; }
+button { border: none; padding: 4px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; box-sizing: border-box; }
 .btn-primary { background: var(--btn-primary); color: white; }
 .btn-primary:hover { background: var(--btn-primary-hover); }
 .btn-success { background: var(--btn-success); color: white; border-bottom: 3px solid rgba(0,0,0,0.2); }
@@ -400,8 +400,9 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 hr.divider { border: 0; border-top: 1px solid var(--border-color); margin: 15px 0; }
 
 /* SECTIONS & GRIDS */
-.section { margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; }
-.section-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--row-bg); cursor: pointer; user-select: none; }
+.section { margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--row-bg); cursor: pointer; user-select: none; border-radius: 4px 4px 0 0; }
+.section.collapsed .section-header { border-radius: 4px; }
 .section-header h3 { margin: 0; font-size: var(--font-size-base); pointer-events: none; }
 .section-content { padding: 10px; background: var(--bg-body); border-top: 1px solid var(--border-color); }
 .section.collapsed .section-content { display: none; }
@@ -412,7 +413,7 @@ hr.divider { border: 0; border-top: 1px solid var(--border-color); margin: 15px 
 .data-container { display: flex; flex-direction: column; gap: 5px; }
 
 /* ROWS (Params & Configs) */
-.data-row { display: flex; justify-content: space-between; align-items: center; background: var(--row-bg); padding: 6px 8px; border-radius: 4px; border: 1px solid var(--row-border); gap: 5px; }
+.data-row { display: flex; justify-content: space-between; align-items: center; background: var(--row-bg); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--row-border); gap: 5px; }
 .row-label { flex-grow: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(var(--font-size-base) - 1px); }
 .row-controls { display: flex; align-items: center; gap: 2px; }
 

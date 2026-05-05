@@ -17,6 +17,7 @@ CONFIG_ATTR_GROUP = "EdJ_Data"
 CONFIG_ATTR_NAME = "Config_Snapshots"
 ACTIVE_CONFIG_ATTR = "Last_Active_Config"
 PLUGIN_REGISTRY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'plugins.json')
+PREFS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'preferences.json')
 
 # ==============================================================================
 # PLUGIN / MACRO MANAGER
@@ -61,6 +62,20 @@ def save_plugins(plugins):
     try:
         with open(PLUGIN_REGISTRY_PATH, 'w') as f:
             json.dump(plugins, f, indent=4)
+    except: pass
+
+def _load_prefs():
+    try:
+        if os.path.exists(PREFS_PATH):
+            with open(PREFS_PATH, 'r') as f:
+                return json.load(f)
+    except: pass
+    return {}
+
+def _save_prefs(prefs):
+    try:
+        with open(PREFS_PATH, 'w') as f:
+            json.dump(prefs, f, indent=4)
     except: pass
 
 def add_plugin(path):
@@ -177,20 +192,24 @@ def scan_all():
     # 2. TIMELINE FEATURES & GROUPS (CFG_)
     feature_data = []
     root = design.rootComponent
-    
-    for feature in root.features:
-        if feature.name.startswith("CFG_"):
-            feature_data.append({
-                "name": feature.name,
-                "isSuppressed": feature.isSuppressed
-            })
-            
+    visibility_items, current_visibility = _scan_visibility_items(root)
     timeline = design.timeline
+
+    cfg_group_names = set()
     for group in timeline.timelineGroups:
         if group.name.startswith("CFG_"):
+            cfg_group_names.add(group.name)
             feature_data.append({
                 "name": group.name,
                 "isSuppressed": group.isSuppressed
+            })
+
+    for i in range(timeline.count):
+        item = timeline.item(i)
+        if item.name.startswith("CFG_") and item.name not in cfg_group_names:
+            feature_data.append({
+                "name": item.name,
+                "isSuppressed": item.isSuppressed
             })
 
     # 3. SAVED CONFIG SNAPSHOTS
@@ -207,10 +226,15 @@ def scan_all():
 
     # --- DIRTY STATE EVALUATION ---
     current_feats = {}
-    for f in root.features:
-        if f.name.startswith("CFG_"): current_feats[f.name] = f.isSuppressed
-    for g in design.timeline.timelineGroups:
-        if g.name.startswith("CFG_"): current_feats[g.name] = g.isSuppressed
+    _cfg_grp_names = set()
+    for g in timeline.timelineGroups:
+        if g.name.startswith("CFG_"):
+            _cfg_grp_names.add(g.name)
+            current_feats[g.name] = g.isSuppressed
+    for i in range(timeline.count):
+        item = timeline.item(i)
+        if item.name.startswith("CFG_") and item.name not in _cfg_grp_names:
+            current_feats[item.name] = item.isSuppressed
 
     current_params = {}
     for p in design.allParameters:
@@ -225,10 +249,12 @@ def scan_all():
     def check_match(snapshot):
         snap_params = snapshot.get("params", {})
         snap_feats = snapshot.get("features", {})
-        
+        snap_vis = snapshot.get("visibility", {})
+
         if snap_feats != current_feats: return False
+        if snap_vis != current_visibility: return False
         if len(snap_params) != len(current_params): return False
-        
+
         for p_name, saved_expr in snap_params.items():
             p = current_params.get(p_name)
             if not p: return False
@@ -259,10 +285,12 @@ def scan_all():
         "doc_name": clean_name,
         "parameters": param_data,
         "features": feature_data,
+        "visibility_items": visibility_items,
         "configs": saved_configs,
         "active_config": final_active_config,
         "is_dirty": is_dirty,
-        "plugins": global_plugins
+        "plugins": global_plugins,
+        "last_export_folder": _load_prefs().get("last_export_folder", "")
     })
 
 # ==============================================================================
@@ -271,20 +299,59 @@ def scan_all():
 def toggle_feature(name, should_suppress):
     app = adsk.core.Application.get()
     design = app.activeProduct
+    timeline = design.timeline
+
+    for group in timeline.timelineGroups:
+        if group.name == name:
+            group.isSuppressed = should_suppress
+            adsk.doEvents()
+            return scan_all()
+
+    for i in range(timeline.count):
+        item = timeline.item(i)
+        if item.name == name:
+            item.isSuppressed = should_suppress
+            adsk.doEvents()
+            return scan_all()
+
+    return scan_all()
+
+def _scan_visibility_items(root):
+    items = []
+    vis_dict = {}
+    for body in root.bRepBodies:
+        if body.name.startswith('CFG_'):
+            items.append({"name": body.name, "type": "body", "isVisible": body.isLightBulbOn})
+            vis_dict[body.name] = body.isLightBulbOn
+    for sketch in root.sketches:
+        if sketch.name.startswith('CFG_'):
+            items.append({"name": sketch.name, "type": "sketch", "isVisible": sketch.isVisible})
+            vis_dict[sketch.name] = sketch.isVisible
+    for occ in root.occurrences:
+        if occ.name.startswith('CFG_'):
+            items.append({"name": occ.name, "type": "occurrence", "isVisible": occ.isLightBulbOn})
+            vis_dict[occ.name] = occ.isLightBulbOn
+    return items, vis_dict
+
+def toggle_visibility(name, is_visible):
+    app = adsk.core.Application.get()
+    design = app.activeProduct
     root = design.rootComponent
-    
-    item = root.features.itemByName(name)
-    if not item:
-        timeline = design.timeline
-        for group in timeline.timelineGroups:
-            if group.name == name:
-                item = group
-                break
-        
-    if item:
-        item.isSuppressed = should_suppress
-        adsk.doEvents() 
-        
+    for body in root.bRepBodies:
+        if body.name == name:
+            body.isLightBulbOn = is_visible
+            adsk.doEvents()
+            return scan_all()
+    for sketch in root.sketches:
+        if sketch.name == name:
+            sketch.isVisible = is_visible
+            adsk.doEvents()
+            return scan_all()
+    for occ in root.occurrences:
+        if occ.name == name:
+            occ.isLightBulbOn = is_visible
+            adsk.doEvents()
+            return scan_all()
     return scan_all()
 
 def save_snapshot(config_name):
@@ -304,14 +371,16 @@ def save_snapshot(config_name):
             params[p.name] = p.expression
 
     feats = {}
-    for f in root.features:
-        if f.name.startswith("CFG_"):
-            feats[f.name] = f.isSuppressed
-            
     timeline = design.timeline
+    cfg_grp_names = set()
     for g in timeline.timelineGroups:
         if g.name.startswith("CFG_"):
+            cfg_grp_names.add(g.name)
             feats[g.name] = g.isSuppressed
+    for i in range(timeline.count):
+        item = timeline.item(i)
+        if item.name.startswith("CFG_") and item.name not in cfg_grp_names:
+            feats[item.name] = item.isSuppressed
 
     current_data = {}
     attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME)
@@ -319,9 +388,12 @@ def save_snapshot(config_name):
         try: current_data = json.loads(attr.value)
         except: pass
     
+    _, vis_dict = _scan_visibility_items(root)
+
     current_data[config_name] = {
         "params": params,
-        "features": feats
+        "features": feats,
+        "visibility": vis_dict
     }
 
     root.attributes.add(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME, json.dumps(current_data))
@@ -405,8 +477,19 @@ def apply_snapshot(config_name):
                     if group.name == name:
                         item = group
                         break
-            if item: 
+            if item:
                 item.isSuppressed = is_suppressed
+
+        saved_vis = snapshot.get("visibility", {})
+        for body in root.bRepBodies:
+            if body.name in saved_vis:
+                body.isLightBulbOn = saved_vis[body.name]
+        for sketch in root.sketches:
+            if sketch.name in saved_vis:
+                sketch.isVisible = saved_vis[sketch.name]
+        for occ in root.occurrences:
+            if occ.name in saved_vis:
+                occ.isLightBulbOn = saved_vis[occ.name]
 
         root.attributes.add(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR, config_name)
     except:
@@ -415,29 +498,39 @@ def apply_snapshot(config_name):
         design.isComputeDeferred = False
         app.activeViewport.refresh()
 
-def batch_export_configs(export_step, export_stl, export_3mf):
+def batch_export_configs(export_step, export_stl, export_3mf, config_names=None):
     app = adsk.core.Application.get()
     ui = app.userInterface
     design = app.activeProduct
     if not design: return json.dumps({"message": "No active design", "type": "error"})
-    
+
     root = design.rootComponent
     exportMgr = design.exportManager
-    
+
     attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, CONFIG_ATTR_NAME)
     if not attr: return json.dumps({"message": "No configs found.", "type": "error"})
-    
+
     try: configs = json.loads(attr.value)
     except: return json.dumps({"message": "Error parsing configs.", "type": "error"})
-    
+
     if not configs: return json.dumps({"message": "No configs to export.", "type": "info"})
-    
-    dlg = ui.createFolderDialog()
-    dlg.title = 'Select Folder for Batch Config Export'
-    if dlg.showDialog() != adsk.core.DialogResults.DialogOK:
-        return json.dumps({"message": "Export cancelled.", "type": "info"})
-    
-    folder = dlg.folder
+
+    all_sorted = sorted(configs.keys(), key=lambda n: n.lower())
+    export_list = [n for n in all_sorted if n in config_names] if config_names is not None else all_sorted
+    if not export_list: return json.dumps({"message": "No matching configs to export.", "type": "info"})
+
+    prefs = _load_prefs()
+    saved_folder = prefs.get("last_export_folder", "")
+    if saved_folder and os.path.isdir(saved_folder):
+        folder = saved_folder
+    else:
+        dlg = ui.createFolderDialog()
+        dlg.title = 'Select Folder for Batch Config Export'
+        if dlg.showDialog() != adsk.core.DialogResults.DialogOK:
+            return json.dumps({"message": "Export cancelled.", "type": "info"})
+        folder = dlg.folder
+        prefs["last_export_folder"] = folder
+        _save_prefs(prefs)
     
     last_active = ""
     active_attr = root.attributes.itemByName(CONFIG_ATTR_GROUP, ACTIVE_CONFIG_ATTR)
@@ -448,17 +541,17 @@ def batch_export_configs(export_step, export_stl, export_3mf):
     progressDialog.isBackgroundTranslucent = False
     progressDialog.isCancelButtonShown = True
     
-    total_configs = len(configs)
+    total_configs = len(export_list)
     progressDialog.show('Exporting Configs...', 'Percent Complete: %p% - Processed so far: %v of %m', 0, total_configs, 1)
-    
+
     success_count = 0
     cancel_flag = False
-    
+
     def sanitize_filename(name: str) -> str:
         name = re.sub(r'[<>:"/\\|?*]', '_', name)
         return name.strip().strip('.')
-        
-    for i, config_name in enumerate(configs.keys()):
+
+    for i, config_name in enumerate(export_list):
         if progressDialog.wasCancelled:
             cancel_flag = True
             break
@@ -508,9 +601,34 @@ def batch_export_configs(export_step, export_stl, export_3mf):
     progressDialog.hide()
     
     if cancel_flag:
-        return json.dumps({"message": f"Export aborted. {success_count} files created.", "type": "info"})
-        
-    return json.dumps({"message": f"Exported {success_count} files successfully.", "type": "success"})
+        return json.dumps({"message": f"Export cancelled. {success_count} files created.", "type": "info", "action": "export_complete", "folder": folder, "count": success_count})
+
+    return json.dumps({"message": f"Exported {success_count} files successfully.", "type": "success", "action": "export_complete", "folder": folder, "count": success_count})
+
+def pick_export_folder():
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    dlg = ui.createFolderDialog()
+    dlg.title = 'Select Default Export Folder'
+
+    # Set initial directory to the currently saved folder for better UX
+    current_prefs = _load_prefs()
+    initial_folder = current_prefs.get("last_export_folder", "")
+    if initial_folder and os.path.isdir(initial_folder):
+        dlg.initialDirectory = initial_folder
+
+    if dlg.showDialog() != adsk.core.DialogResults.DialogOK:
+        # User cancelled the dialog, return current state without changes
+        return scan_all()
+
+    prefs = _load_prefs()
+    selected_folder = dlg.folder
+
+    if selected_folder:  # Only update and save if a folder was actually selected
+        prefs["last_export_folder"] = selected_folder
+        _save_prefs(prefs)
+
+    return scan_all()  # Refresh UI with potentially updated or existing folder
 
 def merge_selected_cfg_groups(target_name="Merged_State"):
     app = adsk.core.Application.get()

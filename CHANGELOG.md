@@ -1,6 +1,16 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.5.0
+
+* **Tracked Visibility (CFG_):** Bodies, sketches, and component occurrences named with the `CFG_` prefix now appear in a new Tracked Visibility section in the Config tab. Their browser visibility states are saved with each snapshot and restored when you load one — the same way Fusion's native Configurations work. CFG_ sketches appear in both sections since timeline suppress and browser visibility are independent controls.
+* **Batch Export overhaul:** Choose your export scope — All, Active, Checked (per-row checkboxes persisted across sessions), or Filtered (currently visible rows). Exports run in alphabetical order. A completion modal shows file count and output folder. Checked-scope exports prompt to clear selections afterwards.
+* **Remembered export folder:** The last-used folder is saved locally in `preferences.json` and reused automatically. A 📁 button lets you change it at any time.
+* **Active snapshot pinned to top:** The currently loaded configuration always floats to the top of the snapshot list.
+* **Config tab reorganized:** Section order is now Snapshots → Tracked Features → Tracked Visibility → Regroup Features → Batch Export.
+* **Expanded auto-refresh triggers:** Palette now auto-syncs on browser visibility toggles and manual timeline suppress/unsuppress actions.
+
+---
 ## ✨ What's New in v1.4.5
 
 * **Text Parameter Support:** Creating and editing `Text` type parameters now works correctly end-to-end. LiveUtilities automatically handles the single-quote wrapping that Fusion requires — just type your value. Simple literals, parameter references, concatenation expressions, and conditional expressions all work directly from the palette.

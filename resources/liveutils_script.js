@@ -4,6 +4,8 @@ let searchQuery = "";
 let statusTimeout;
 
 let currentSelectedGroups = 0; // Tracks timeline group selection count
+let _activeConfig = '';
+let _pendingExportScope = '';
 // --- THEME MANAGER STATE ---
 const cssVariables = [
     '--font-family', '--font-size-base', 
@@ -196,6 +198,26 @@ function executeConfirmModal() {
     if (pendingConfirmAction) pendingConfirmAction();
     closeConfirmModal();
 }
+function showAlertModal(title, message) {
+    document.getElementById('alertModalTitle').innerText = title;
+    document.getElementById('alertModalMessage').innerText = message;
+    document.getElementById('alertModal').style.display = 'flex';
+}
+function closeAlertModal() {
+    document.getElementById('alertModal').style.display = 'none';
+}
+function handleExportComplete(data) {
+    const msg = data.message + (data.folder ? '\n\n' + data.folder : '');
+    if (data.type === 'success' && _pendingExportScope === 'checked') {
+        showConfirmModal('Export Complete', msg + '\n\nClear checked selections?', () => {
+            localStorage.removeItem(EXPORT_CHECKED_KEY);
+            if (lastReceivedData) renderConfigs(lastReceivedData.configs || {}, lastReceivedData.active_config, lastReceivedData.is_dirty);
+        });
+    } else {
+        showAlertModal(data.type === 'success' ? 'Export Complete' : 'Export Cancelled', msg);
+    }
+    _pendingExportScope = '';
+}
 
 function resetThemeCache() {
     showConfirmModal('Factory Reset', "This will permanently delete all custom imported themes and font overrides. Continue?", function() {
@@ -355,6 +377,10 @@ function sendToFusion(action, data = {}) {
 function refreshData() { sendToFusion('refresh_data'); }
 
 function showStatus(data) {
+    if (data.action === 'export_complete') {
+        handleExportComplete(data);
+        return;
+    }
     const box = document.getElementById('statusMessage');
     box.innerText = data.message;
     box.className = 'status-box ' + (data.type || 'info');
@@ -389,9 +415,17 @@ function renderUI(data) {
     renderParameters(data.parameters || []);
     renderConfigs(data.configs || {}, data.active_config, data.is_dirty);
     renderFeatures(data.features || []);
-    
+    renderVisibility(data.visibility_items || []);
+
     // Pass the newly sorted plugins to the renderer
-    renderScripts(data.plugins || []); 
+    renderScripts(data.plugins || []);
+
+    const folderDisplay = document.getElementById('exportFolderDisplay');
+    if (folderDisplay) {
+        const f = data.last_export_folder || '';
+        folderDisplay.innerText = f || 'Not set';
+        folderDisplay.title = f;
+    }
 }
 
 function renderParameters(params) {
@@ -447,14 +481,21 @@ function createParamRow(p) {
 }
 
 function renderConfigs(configs, activeConfig, isDirty) {
+    _activeConfig = activeConfig;
     const container = document.getElementById('configList');
-    const names = Object.keys(configs).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    const names = Object.keys(configs).sort((a, b) => {
+        if (a === activeConfig) return -1;
+        if (b === activeConfig) return 1;
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
     container.innerHTML = '';
 
     if (names.length === 0) {
         container.innerHTML = '<div class="empty-state">No snapshots saved.</div>';
         return;
     }
+
+    const _savedChecked = getExportChecked();
 
     names.forEach(name => {
         let combinedStyle = 'flex-grow:1; text-align:left; margin-right:5px;';
@@ -471,9 +512,11 @@ function renderConfigs(configs, activeConfig, isDirty) {
         
         const safeNameDisplay = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const encodedName = encodeURIComponent(name);
+        const isChecked = _savedChecked.includes(name) ? 'checked' : '';
 
         container.innerHTML += `
-            <div class="data-row">
+            <div class="data-row" data-name="${safeNameDisplay.toLowerCase()}">
+                <input type="checkbox" class="config-export-cb" data-name="${encodedName}" ${isChecked} onchange="toggleExportCheck(this)" style="flex-shrink:0;">
                 <button class="btn-secondary snapshot-btn" style="${combinedStyle}" onclick="sendToFusion('load_snapshot', {config_name: decodeURIComponent('${encodedName}')})">
                     ${safeNameDisplay}${dirtyIndicator}
                 </button>
@@ -485,6 +528,32 @@ function renderConfigs(configs, activeConfig, isDirty) {
             </div>
         `;
     });
+    filterConfigs();
+}
+
+function filterConfigs() {
+    const q = document.getElementById('newConfigName').value.toLowerCase();
+    document.querySelectorAll('#configList .data-row').forEach(row => {
+        row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+    });
+}
+
+const EXPORT_CHECKED_KEY = 'lu_export_checked';
+
+function getExportChecked() {
+    try { return JSON.parse(localStorage.getItem(EXPORT_CHECKED_KEY)) || []; }
+    catch { return []; }
+}
+
+function toggleExportCheck(cb) {
+    const name = decodeURIComponent(cb.dataset.name);
+    let checked = getExportChecked();
+    if (cb.checked) {
+        if (!checked.includes(name)) checked.push(name);
+    } else {
+        checked = checked.filter(n => n !== name);
+    }
+    localStorage.setItem(EXPORT_CHECKED_KEY, JSON.stringify(checked));
 }
 
 function renderFeatures(features) {
@@ -503,6 +572,33 @@ function renderFeatures(features) {
                 <span class="row-label">${f.name}</span>
                 <label class="theme-switch" style="transform: scale(0.8); margin-right: 5px;">
                     <input type="checkbox" ${checked} onchange="sendToFusion('toggle_feature', {name: '${f.name}', is_suppressed: !this.checked})">
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+        `;
+    });
+}
+
+function renderVisibility(items) {
+    const container = document.getElementById('visibilityList');
+    container.innerHTML = '';
+    if (items.length === 0) {
+        container.innerHTML = '<div class="empty-state">No CFG_ bodies, sketches, or components found.</div>';
+        return;
+    }
+    const typeLabel = { body: 'Body', sketch: 'Sketch', occurrence: 'Component' };
+    items.forEach(item => {
+        const checked = item.isVisible ? 'checked' : '';
+        const label = typeLabel[item.type] || item.type;
+        const safeName = item.name.replace(/'/g, "\\'");
+        container.innerHTML += `
+            <div class="data-row">
+                <span class="row-label" style="flex:1;">${item.name}
+                    <span style="font-size:calc(var(--font-size-base) - 3px); color:var(--text-sub); margin-left:5px;">${label}</span>
+                </span>
+                <label class="theme-switch" style="transform:scale(0.8); margin-right:5px;">
+                    <input type="checkbox" ${checked}
+                           onchange="sendToFusion('toggle_visibility', {name: '${safeName}', is_visible: this.checked})">
                     <span class="theme-slider"></span>
                 </label>
             </div>
@@ -640,11 +736,53 @@ function createMilestone() {
 }
 function exportLog() { sendToFusion('export_log'); }
 
+function pickExportFolder() {
+    sendToFusion('pick_export_folder', {});
+}
+
 function exportConfigs() {
+    const step = document.getElementById('expSTEP').checked;
+    const stl = document.getElementById('expSTL').checked;
+    const _3mf = document.getElementById('exp3MF').checked;
+
+    if (!step && !stl && !_3mf) {
+        showAlertModal('Export Options', 'Please select at least one export format (STEP, STL, or 3MF).');
+        return;
+    }
+
+    const scope = document.querySelector('input[name="exportScope"]:checked').value;
+    let configNames = null;
+
+    if (scope === 'active') {
+        if (!_activeConfig) {
+            showAlertModal('Export Error', 'No active config to export.');
+            return;
+        }
+        configNames = [_activeConfig];
+    } else if (scope === 'checked') {
+        configNames = getExportChecked();
+        if (configNames.length === 0) {
+            showAlertModal('Export Error', 'No snapshots are checked for export.');
+            return;
+        }
+    } else if (scope === 'filtered') {
+        const visibleRows = Array.from(document.querySelectorAll('#configList .data-row'))
+            .filter(row => row.style.display !== 'none');
+        configNames = visibleRows.map(row =>
+            decodeURIComponent(row.querySelector('.config-export-cb').dataset.name)
+        );
+        if (configNames.length === 0) {
+            showAlertModal('Export Error', 'No snapshots match the current filter.');
+            return;
+        }
+    }
+
+    _pendingExportScope = scope;
     sendToFusion('export_configs', {
-        step: document.getElementById('expSTEP').checked,
-        stl: document.getElementById('expSTL').checked,
-        '3mf': document.getElementById('exp3MF').checked
+        step: step,
+        stl: stl,
+        '3mf': _3mf,
+        config_names: configNames
     });
 }
 
