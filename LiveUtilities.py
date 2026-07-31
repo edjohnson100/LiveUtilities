@@ -20,20 +20,27 @@ class MyCommandExecuteHandler(adsk.core.CommandEventHandler):
     def notify(self, args):
         try:
             old = ui.palettes.itemById(palette_id)
-            if old: old.deleteMe()
+            if old:
+                core_logic._save_palette_geometry(old)
+                old.deleteMe()
 
             script_folder = os.path.dirname(os.path.realpath(__file__))
             html_path = os.path.join(script_folder, 'resources', 'liveutils_index.html')
-            
+
             if not os.path.exists(html_path):
                 ui.messageBox(f'Error: HTML file not found at:\n{html_path}')
                 return
 
             url = 'file:///' + html_path.replace('\\', '/')
-            
-            palette = ui.palettes.add(palette_id, 'Live Utilities', url, True, True, True, 360, 500)
+
+            geometry = core_logic._load_prefs().get('palette_geometry', {})
+            width = geometry.get('width', 360)
+            height = geometry.get('height', 500)
+
+            palette = ui.palettes.add(palette_id, 'Live Utilities', url, True, True, True, width, height)
             palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
-            
+            core_logic._restore_palette_geometry(palette)
+
             onHtmlEvent = MyHTMLEventHandler()
             palette.incomingFromHTML.add(onHtmlEvent)
             handlers.append(onHtmlEvent)
@@ -98,6 +105,23 @@ class MyHTMLEventHandler(adsk.core.HTMLEventHandler):
                 payload = core_logic.import_theme_logic(data.get('file_type'))
                 if payload and palette:
                     palette.sendInfoToHTML('theme_imported', payload)
+                return
+
+            elif action == 'save_imported_theme':
+                theme_id = data.get('id')
+                theme_vars = data.get('vars')
+                if theme_id and isinstance(theme_vars, dict):
+                    core_logic.save_imported_theme(theme_id, theme_vars)
+                return
+
+            elif action == 'remove_imported_theme':
+                theme_id = data.get('id')
+                if theme_id:
+                    core_logic.delete_imported_theme(theme_id)
+                return
+
+            elif action == 'reset_imported_themes':
+                core_logic.clear_imported_themes()
                 return
 
             # --- MACRO ROUTING ---
@@ -374,7 +398,10 @@ class MyCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
 class MyPaletteCloseHandler(adsk.core.UserInterfaceGeneralEventHandler):
     def __init__(self): super().__init__()
-    def notify(self, args): pass
+    def notify(self, args):
+        palette = ui.palettes.itemById(palette_id)
+        if palette:
+            core_logic._save_palette_geometry(palette)
 
 def run(context):
     global ui, app, onCmdTerminated, onSelectionChanged
@@ -430,7 +457,10 @@ def run(context):
 
 def stop(context):
     try:
-        if ui.palettes.itemById(palette_id): ui.palettes.itemById(palette_id).deleteMe()
+        palette = ui.palettes.itemById(palette_id)
+        if palette:
+            core_logic._save_palette_geometry(palette)
+            palette.deleteMe()
         if ui.commandDefinitions.itemById(command_id): ui.commandDefinitions.itemById(command_id).deleteMe()
         
         # Clean up from Solid panel

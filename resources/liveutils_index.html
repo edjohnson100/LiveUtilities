@@ -24,7 +24,7 @@
 <body>
     <div class="header">
         <div class="title-group">
-            <h2 id="appTitle">LIVE PARAMETERS</h2>
+            <h2 id="appTitle">LIVE PARAMETERS <span id="versionTag" class="version-tag"></span></h2>
             <div id="docName" class="sub-header">Scanning...</div>
         </div>
         
@@ -260,6 +260,7 @@
                     <button class="btn-primary" onclick="requestExport('css')">📤 Export style.css</button>
                     <button class="btn-secondary" onclick="requestImport('json')">📂 Import .json</button>
                     <button class="btn-secondary" onclick="requestExport('json')">💾 Export .json</button>
+                    <button id="themeRemoveBtn" class="btn-secondary full-width" onclick="removeSelectedTheme()" disabled title="Select a custom (imported) theme to enable" style="color: #d9534f; border-color: #d9534f;">🗑️ Remove Selected Theme</button>
                     <button class="btn-secondary full-width" onclick="resetThemeCache()" style="color: #d9534f; border-color: #d9534f;">🗑️ Factory Reset Theme Cache</button>
                 </div>
             </div>

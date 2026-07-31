@@ -22,6 +22,12 @@ const cssVariables = [
 let themes = {};
 let baseCSS = "";
 let customThemes = JSON.parse(localStorage.getItem('LU_custom_themes') || '{}');
+// Ids parsed straight out of style.css/liveutils_style.css at load time, before
+// customThemes/host-imported themes are merged in. Used to tell "a genuinely
+// custom/imported theme" (removable) apart from "a built-in theme the user has
+// live-edited overrides for" (not removable -- use Factory Reset for that).
+let builtInThemeIds = new Set();
+let _importedThemesLoaded = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('LU_theme') || 'Default Light';
@@ -65,7 +71,8 @@ function initThemes(savedTheme) {
         const parsed = parseStyleCSS(css);
         themes = parsed.themes;
         baseCSS = parsed.baseCSS;
-        
+        builtInThemeIds = new Set(Object.keys(parsed.themes));
+
         for (let id in customThemes) {
             if (!themes[id]) themes[id] = {};
             Object.assign(themes[id], customThemes[id]);
@@ -171,6 +178,54 @@ function updateActiveThemeProperty(prop, value) {
     updateStyleTag();
 }
 
+function mergeImportedThemes(hostThemes) {
+    // Host-persisted (imported_themes.json) is the durable source of truth;
+    // localStorage is just a fast-path cache for instant render before this
+    // round-trip resolves. Runs once per palette session -- re-running on
+    // every refresh_data tick would clobber an in-progress live edit.
+    if (_importedThemesLoaded || !hostThemes || Object.keys(hostThemes).length === 0) return;
+    _importedThemesLoaded = true;
+
+    for (let id in hostThemes) {
+        if (!themes[id]) themes[id] = {};
+        Object.assign(themes[id], hostThemes[id]);
+        if (!customThemes[id]) customThemes[id] = hostThemes[id];
+    }
+    localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
+    updateThemeDropdown();
+    updateStyleTag();
+    updateRemoveButtonState();
+}
+
+function updateRemoveButtonState() {
+    const btn = document.getElementById('themeRemoveBtn');
+    if (!btn) return;
+    const themeSelector = document.getElementById('themeSelector');
+    const id = themeSelector ? themeSelector.value : 'Default Light';
+    const removable = id !== 'Default Light' && !builtInThemeIds.has(id) && (id in customThemes);
+    btn.disabled = !removable;
+    btn.title = removable ? `Remove the "${id}" theme` : 'Select a custom (imported) theme to enable';
+}
+
+function removeSelectedTheme() {
+    const themeSelector = document.getElementById('themeSelector');
+    const id = themeSelector ? themeSelector.value : null;
+    if (!id || id === 'Default Light' || builtInThemeIds.has(id) || !(id in customThemes)) return;
+
+    showConfirmModal('Remove Theme', `Permanently remove the "${id}" theme? Re-import its .theme.json to bring it back.`, function() {
+        delete themes[id];
+        delete customThemes[id];
+        localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
+        sendToFusion('remove_imported_theme', { id: id });
+
+        updateThemeDropdown();
+        updateStyleTag();
+        themeSelector.value = 'Default Light';
+        changeTheme();
+        showStatus({message: `Theme '${id}' removed.`, type: "success"});
+    });
+}
+
 function requestImport(type) { sendToFusion('import_theme', { file_type: type }); }
 function requestExport(type) {
     const themeSelector = document.getElementById('themeSelector');
@@ -224,13 +279,18 @@ function resetThemeCache() {
         localStorage.removeItem('LU_custom_themes');
         localStorage.removeItem('LU_theme');
         customThemes = {};
-        
+        _importedThemesLoaded = false;
+
+        // Also wipe the host-side store -- otherwise the next palette load
+        // would just re-import everything from imported_themes.json.
+        sendToFusion('reset_imported_themes');
+
         let styleTag = document.getElementById('dynamic-theme-overrides');
         if (styleTag) styleTag.remove();
-        
+
         let importedTag = document.getElementById('imported-style-css');
         if (importedTag) importedTag.remove();
-        
+
         showStatus({message: "Theme cache wiped. Reloading defaults...", type: "success"});
         initThemes('Default Light');
     });
@@ -259,6 +319,8 @@ function changeTheme() {
         let match = Array.from(fontSize.options).find(o => o.value === currentVars['--font-size-base']);
         if (match) fontSize.value = match.value;
     }
+
+    updateRemoveButtonState();
 }
 
 function switchTab(tabId) {
@@ -305,16 +367,22 @@ window.fusionJavaScriptHandler = {
                     Object.assign(themes, parsedCSS.themes);
                     Object.assign(customThemes, parsedCSS.themes);
                     localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
-                    updateThemeDropdown(); 
+                    updateThemeDropdown();
                     updateStyleTag();
-                    
+
+                    // Persist host-side too (each theme block in the bundle,
+                    // skip Default Light -- that's :root, not a named theme).
+                    Object.entries(parsedCSS.themes).forEach(([id, vars]) => {
+                        if (id !== 'Default Light') sendToFusion('save_imported_theme', { id: id, vars: vars });
+                    });
+
                     // Auto-select the first non-default theme from the imported file
                     const customKeys = Object.keys(parsedCSS.themes).filter(k => k !== "Default Light");
                     const themeSelector = document.getElementById('themeSelector');
                     if (themeSelector && customKeys.length > 0) {
                         themeSelector.value = customKeys[0];
                     }
-                    
+
                     changeTheme();
                     showStatus({message: "CSS Theme(s) Imported Successfully", type: "success"});
                 } else if (parsed.file_type === 'json') {
@@ -324,6 +392,7 @@ window.fusionJavaScriptHandler = {
                             themes[themeData.id] = themeData.vars;
                             customThemes[themeData.id] = themeData.vars;
                             localStorage.setItem('LU_custom_themes', JSON.stringify(customThemes));
+                            sendToFusion('save_imported_theme', { id: themeData.id, vars: themeData.vars });
                             updateThemeDropdown(); updateStyleTag();
                             const themeSelector = document.getElementById('themeSelector');
                             if (themeSelector) themeSelector.value = themeData.id;
@@ -400,6 +469,8 @@ function showStatus(data) {
 // --- RENDER MASTER UI ---
 function renderUI(data) {
     lastReceivedData = data;
+    if (data.imported_themes) mergeImportedThemes(data.imported_themes);
+    if (data.addin_version) document.getElementById('versionTag').textContent = 'v' + data.addin_version;
     document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
 
     // Sort parameters A-Z (case-insensitive)

@@ -19,6 +19,61 @@ ACTIVE_CONFIG_ATTR = "Last_Active_Config"
 PLUGIN_REGISTRY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'plugins.json')
 PREFS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'preferences.json')
 
+def _read_manifest_version():
+    manifest_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'LiveUtilities.manifest')
+    try:
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            return json.load(f).get('version', '')
+    except Exception:
+        return ''
+
+ADDIN_VERSION = _read_manifest_version()
+
+# Host-side store for user-imported/edited themes -- separate from the built-in
+# themes baked into liveutils_style.css. Per-machine, gitignored (same split as
+# GridfinityGeneratorPlus's imported_themes.json): survives a restart or a
+# localStorage wipe without polluting resources/, which holds only what ships
+# with the add-in.
+IMPORTED_THEMES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'imported_themes.json')
+
+# ==============================================================================
+# THEME MANAGER (persistence)
+# ==============================================================================
+def load_imported_themes():
+    if not os.path.exists(IMPORTED_THEMES_PATH):
+        return {}
+    try:
+        with open(IMPORTED_THEMES_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_imported_theme(theme_id, theme_vars):
+    themes = load_imported_themes()
+    themes[theme_id] = theme_vars
+    with open(IMPORTED_THEMES_PATH, 'w', encoding='utf-8') as f:
+        json.dump(themes, f, indent=2)
+
+def delete_imported_theme(theme_id):
+    themes = load_imported_themes()
+    if theme_id in themes:
+        del themes[theme_id]
+        with open(IMPORTED_THEMES_PATH, 'w', encoding='utf-8') as f:
+            json.dump(themes, f, indent=2)
+
+def clear_imported_themes():
+    """Used by the Theme Manager's Factory Reset -- wipes every host-persisted
+    imported theme, not just localStorage, so a reset actually resets."""
+    if os.path.exists(IMPORTED_THEMES_PATH):
+        os.remove(IMPORTED_THEMES_PATH)
+
+def _themes_dialog_dir():
+    """Standard theme import/export dialog location: resources/themes/ if it
+    exists (shipped presets), else fall back to resources/."""
+    root = os.path.dirname(os.path.realpath(__file__))
+    themes_dir = os.path.join(root, 'resources', 'themes')
+    return themes_dir if os.path.isdir(themes_dir) else os.path.join(root, 'resources')
+
 # ==============================================================================
 # PLUGIN / MACRO MANAGER
 # ==============================================================================
@@ -77,6 +132,36 @@ def _save_prefs(prefs):
         with open(PREFS_PATH, 'w') as f:
             json.dump(prefs, f, indent=4)
     except: pass
+
+def _save_palette_geometry(palette):
+    # Fusion's Palette has no resize/move event -- width/height/left/top/
+    # dockingState are only readable on demand, so this is called at the two
+    # points the palette's lifecycle actually gives us: the user closing it
+    # and the add-in being stopped (right before palette.deleteMe()).
+    try:
+        prefs = _load_prefs()
+        prefs['palette_geometry'] = {
+            'width': palette.width,
+            'height': palette.height,
+            'left': palette.left,
+            'top': palette.top,
+            'docking_state': int(palette.dockingState),
+        }
+        _save_prefs(prefs)
+    except RuntimeError:
+        pass
+
+def _restore_palette_geometry(palette):
+    geometry = _load_prefs().get('palette_geometry', {})
+    try:
+        if 'left' in geometry:
+            palette.left = geometry['left']
+        if 'top' in geometry:
+            palette.top = geometry['top']
+        if 'docking_state' in geometry:
+            palette.dockingState = geometry['docking_state']
+    except RuntimeError:
+        pass
 
 def add_plugin(path):
     plugins = get_plugins()
@@ -162,8 +247,8 @@ def scan_all():
     # Grab plugins right away as they are global
     global_plugins = get_plugins()
     
-    if not design: 
-        return json.dumps({"error": "No design active", "plugins": global_plugins})
+    if not design:
+        return json.dumps({"error": "No design active", "plugins": global_plugins, "imported_themes": load_imported_themes(), "addin_version": ADDIN_VERSION})
 
     clean_name = re.sub(r'\s+v\d+$', '', app.activeDocument.name)
 
@@ -290,7 +375,9 @@ def scan_all():
         "active_config": final_active_config,
         "is_dirty": is_dirty,
         "plugins": global_plugins,
-        "last_export_folder": _load_prefs().get("last_export_folder", "")
+        "last_export_folder": _load_prefs().get("last_export_folder", ""),
+        "imported_themes": load_imported_themes(),
+        "addin_version": ADDIN_VERSION
     })
 
 # ==============================================================================
@@ -925,8 +1012,7 @@ def export_theme_logic(file_type, content, default_name):
     else:
         fileDialog.filter = 'JSON Files (*.json);;All Files (*.*)'
         
-    resources_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
-    fileDialog.initialDirectory = resources_dir
+    fileDialog.initialDirectory = _themes_dialog_dir()
     fileDialog.initialFilename = default_name
     if fileDialog.showSave() == adsk.core.DialogResults.DialogOK:
         try:
@@ -946,8 +1032,7 @@ def import_theme_logic(file_type):
     else:
         fileDialog.filter = 'JSON Files (*.json);;All Files (*.*)'
         
-    resources_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
-    fileDialog.initialDirectory = resources_dir
+    fileDialog.initialDirectory = _themes_dialog_dir()
     if fileDialog.showOpen() == adsk.core.DialogResults.DialogOK:
         try:
             with open(fileDialog.filename, 'r', encoding='utf-8') as f:
