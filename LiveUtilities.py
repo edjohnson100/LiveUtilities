@@ -416,12 +416,17 @@ def run(context):
         res_dir = os.path.join(script_folder, 'resources')
         
         cmdDef = ui.commandDefinitions.addButtonDefinition(
-            command_id, 
-            'Live Utilities', 
-            'Persistent tools for Parameters, Configurations, Changelogs, and Macros.', 
+            command_id,
+            'Live Utilities',
+            'Persistent tools for Parameters, Configurations, Changelogs, and Macros.',
             res_dir
         )
-        
+
+        # toolClip: explicit reference, not relying on Fusion's resourceFolder auto-pickup
+        tool_clip_path = os.path.join(res_dir, 'toolClip.png')
+        if os.path.exists(tool_clip_path):
+            cmdDef.toolClipFilename = tool_clip_path
+
         onCreated = MyCommandCreatedHandler()
         cmdDef.commandCreated.add(onCreated)
         handlers.append(onCreated)
