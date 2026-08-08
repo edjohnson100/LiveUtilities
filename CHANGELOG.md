@@ -1,6 +1,16 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.6.0
+
+* **Palette geometry persistence:** The palette now remembers its width, height, position, and docking state between sessions instead of always reopening at a fixed 360x500.
+* **Host-side theme storage:** Imported and edited themes now persist to disk (not just browser `localStorage`), so custom themes survive a palette reload. Added a **Remove Selected Theme** button and a **Factory Reset** that wipes both the local and host-side theme stores.
+* **Six bundled theme presets:** Classic Light, Classic Dark, Gruvbox Light, Hacker, Hot Pink, and EdJ Dark now ship ready to import from the Themes tab.
+* **Fleet UI standardization:** Header now shows the title with the version tag and design name stacked underneath (previously the version tag lived inline inside the title and was silently destroyed by the first tab switch — parameters/configs could fail to render as a result). Added a persistent footer showing the add-in name and version on every tab.
+* **Accessibility pass:** Every themed button now defines its own readable foreground color instead of assuming white text, all interactive controls (buttons, inputs, collapsible sections, the info icons) show a visible keyboard focus ring, and error/danger-styled text and modal overlays go through themeable tokens instead of hardcoded colors. Applies to all 9 built-in themes and the sample custom theme.
+* **Fixed a stale-CSS regression:** The theme stylesheet fetched at runtime had drifted from the linked base stylesheet and was silently reintroducing a section-clipping bug that had already been fixed in a prior release. Both files are back in sync.
+
+---
 ## ✨ What's New in v1.5.0
 
 * **Tracked Visibility (CFG_):** Bodies, sketches, and component occurrences named with the `CFG_` prefix now appear in a new Tracked Visibility section in the Config tab. Their browser visibility states are saved with each snapshot and restored when you load one — the same way Fusion's native Configurations work. CFG_ sketches appear in both sections since timeline suppress and browser visibility are independent controls.

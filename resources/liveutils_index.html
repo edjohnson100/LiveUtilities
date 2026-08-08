@@ -8,7 +8,7 @@
         .snapshot-btn:hover {
             background-color: var(--btn-primary) !important;
             border-color: var(--btn-primary) !important;
-            color: #fff !important;
+            color: var(--btn-primary-text, #fff) !important;
         }
         .info-icon {
             font-size: calc(var(--font-size-base) - 2px);
@@ -24,10 +24,11 @@
 <body>
     <div class="header">
         <div class="title-group">
-            <h2 id="appTitle">LIVE PARAMETERS <span id="versionTag" class="version-tag"></span></h2>
+            <h2 id="appTitle">LIVE PARAMETERS</h2>
+            <div id="versionTag" class="sub-header"></div>
             <div id="docName" class="sub-header">Scanning...</div>
         </div>
-        
+
         <div style="display: flex; align-items: center; gap: 15px;">
             <button class="icon-btn" onclick="refreshData()" title="Rescan Model" style="padding: 4px 8px; font-size: calc(var(--font-size-base) + 1px);">↻</button>
             <select id="themeSelector" onchange="changeTheme()" title="Select Theme" style="font-size: calc(var(--font-size-base) - 1px); padding: 4px 8px; border-radius: 4px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); cursor: pointer; outline: none; margin-top: 5px;">
@@ -58,7 +59,7 @@
         </div>
 
         <div class="section collapsed" id="sec-create-param">
-            <div class="section-header" onclick="toggleSection('sec-create-param')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-create-param')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-create-param')}">
                 <h3>Add Parameter</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -96,7 +97,7 @@
 
     <div id="tab-config" class="tab-content">
         <div class="section" id="sec-configs">
-            <div class="section-header" onclick="toggleSection('sec-configs')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-configs')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-configs')}">
                 <h3>Snapshots</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -110,8 +111,8 @@
         </div>
 
         <div class="section" id="sec-features">
-            <div class="section-header" onclick="toggleSection('sec-features')">
-                <h3>Tracked Features (CFG_) <span class="info-icon" onclick="event.stopPropagation(); showAlertModal('Tracked Features (CFG_)', 'Controls timeline suppression for CFG_-prefixed groups and features.\n\nCFG_ sketches also appear in Tracked Visibility — suppress (timeline) and visibility (browser eye) are two independent controls.')">ⓘ</span></h3>
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-features')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-features')}">
+                <h3>Tracked Features (CFG_) <span class="info-icon" tabindex="0" role="button" onclick="event.stopPropagation(); showAlertModal('Tracked Features (CFG_)', 'Controls timeline suppression for CFG_-prefixed groups and features.\n\nCFG_ sketches also appear in Tracked Visibility — suppress (timeline) and visibility (browser eye) are two independent controls.')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();showAlertModal('Tracked Features (CFG_)', 'Controls timeline suppression for CFG_-prefixed groups and features.\n\nCFG_ sketches also appear in Tracked Visibility — suppress (timeline) and visibility (browser eye) are two independent controls.')}">ⓘ</span></h3>
                 <span class="arrow">▼</span>
             </div>
             <div class="section-content">
@@ -120,8 +121,8 @@
         </div>
 
         <div class="section" id="sec-visibility">
-            <div class="section-header" onclick="toggleSection('sec-visibility')">
-                <h3>Tracked Visibility (CFG_) <span class="info-icon" onclick="event.stopPropagation(); showAlertModal('Tracked Visibility (CFG_)', 'Controls browser visibility for CFG_-prefixed bodies, sketches, and components.\n\nCFG_ sketches appear here AND in Tracked Features — both sections expose independent controls.\n\nComponents suppressed from the timeline may need a manual rescan (↻) to restore their entry here.')">ⓘ</span></h3>
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-visibility')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-visibility')}">
+                <h3>Tracked Visibility (CFG_) <span class="info-icon" tabindex="0" role="button" onclick="event.stopPropagation(); showAlertModal('Tracked Visibility (CFG_)', 'Controls browser visibility for CFG_-prefixed bodies, sketches, and components.\n\nCFG_ sketches appear here AND in Tracked Features — both sections expose independent controls.\n\nComponents suppressed from the timeline may need a manual rescan (↻) to restore their entry here.')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();showAlertModal('Tracked Visibility (CFG_)', 'Controls browser visibility for CFG_-prefixed bodies, sketches, and components.\n\nCFG_ sketches appear here AND in Tracked Features — both sections expose independent controls.\n\nComponents suppressed from the timeline may need a manual rescan (↻) to restore their entry here.')}">ⓘ</span></h3>
                 <span class="arrow">▼</span>
             </div>
             <div class="section-content">
@@ -130,7 +131,7 @@
         </div>
 
         <div class="section collapsed" id="sec-regroup">
-            <div class="section-header" onclick="toggleSection('sec-regroup')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-regroup')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-regroup')}">
                 <h3>Regroup Features</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -147,7 +148,7 @@
         </div>
 
         <div class="section collapsed" id="sec-batch-export">
-            <div class="section-header" onclick="toggleSection('sec-batch-export')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-batch-export')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-batch-export')}">
                 <h3>Batch Export</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -194,7 +195,7 @@
         </div>
 
         <div class="section collapsed" id="sec-milestone">
-            <div class="section-header" onclick="toggleSection('sec-milestone')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-milestone')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-milestone')}">
                 <h3>Milestones and Utilities</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -215,7 +216,7 @@
         </div>
 
         <div class="section collapsed" id="sec-script-manager">
-            <div class="section-header" onclick="toggleSection('sec-script-manager')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-script-manager')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-script-manager')}">
                 <h3>Script Manager</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -231,7 +232,7 @@
 
     <div id="tab-themes" class="tab-content">
         <div class="section" id="sec-theme-manager">
-            <div class="section-header" onclick="toggleSection('sec-theme-manager')">
+            <div class="section-header" tabindex="0" role="button" onclick="toggleSection('sec-theme-manager')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection('sec-theme-manager')}">
                 <h3>Theme Manager</h3>
                 <span class="arrow">▼</span>
             </div>
@@ -260,12 +261,14 @@
                     <button class="btn-primary" onclick="requestExport('css')">📤 Export style.css</button>
                     <button class="btn-secondary" onclick="requestImport('json')">📂 Import .json</button>
                     <button class="btn-secondary" onclick="requestExport('json')">💾 Export .json</button>
-                    <button id="themeRemoveBtn" class="btn-secondary full-width" onclick="removeSelectedTheme()" disabled title="Select a custom (imported) theme to enable" style="color: #d9534f; border-color: #d9534f;">🗑️ Remove Selected Theme</button>
-                    <button class="btn-secondary full-width" onclick="resetThemeCache()" style="color: #d9534f; border-color: #d9534f;">🗑️ Factory Reset Theme Cache</button>
+                    <button id="themeRemoveBtn" class="btn-secondary full-width" onclick="removeSelectedTheme()" disabled title="Select a custom (imported) theme to enable" style="color: var(--text-danger, #d9534f); border-color: var(--text-danger, #d9534f);">🗑️ Remove Selected Theme</button>
+                    <button class="btn-secondary full-width" onclick="resetThemeCache()" style="color: var(--text-danger, #d9534f); border-color: var(--text-danger, #d9534f);">🗑️ Factory Reset Theme Cache</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="version-footer">Live Utilities<br><span id="footerVersion">v1.6.0</span>, August 2026</div>
 
     <div id="editModal" class="modal-overlay">
         <div class="modal-content">
@@ -326,6 +329,6 @@
         </div>
     </div>
 
-    <script src="liveutils_script.js?v=3"></script>
+    <script src="liveutils_script.js?v=4"></script>
 </body>
 </html>

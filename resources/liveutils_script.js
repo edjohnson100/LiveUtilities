@@ -8,16 +8,18 @@ let _activeConfig = '';
 let _pendingExportScope = '';
 // --- THEME MANAGER STATE ---
 const cssVariables = [
-    '--font-family', '--font-size-base', 
+    '--font-family', '--font-size-base',
     '--bg-body', '--text-main', '--text-sub', '--border-color',
     '--row-bg', '--row-border', '--row-hover',
     '--input-bg', '--input-border', '--input-text', '--input-placeholder', '--toggle-bg',
     '--header-hover', '--tab-bg', '--tab-active-bg', '--tab-text', '--tab-active-text',
-    '--btn-primary', '--btn-primary-hover', '--btn-success', '--btn-success-hover',
+    '--btn-primary', '--btn-primary-hover', '--btn-primary-text',
+    '--btn-success', '--btn-success-hover', '--btn-success-text',
     '--btn-secondary', '--btn-secondary-hover', '--btn-secondary-text',
     '--status-success-bg', '--status-success-text',
     '--status-error-bg', '--status-error-text',
-    '--status-info-bg', '--status-info-text'
+    '--status-info-bg', '--status-info-text',
+    '--focus-ring', '--text-danger', '--overlay-bg'
 ];
 let themes = {};
 let baseCSS = "";
@@ -470,7 +472,11 @@ function showStatus(data) {
 function renderUI(data) {
     lastReceivedData = data;
     if (data.imported_themes) mergeImportedThemes(data.imported_themes);
-    if (data.addin_version) document.getElementById('versionTag').textContent = 'v' + data.addin_version;
+    if (data.addin_version) {
+        document.getElementById('versionTag').textContent = 'v' + data.addin_version;
+        const footerVer = document.getElementById('footerVersion');
+        if (footerVer) footerVer.textContent = 'v' + data.addin_version;
+    }
     document.getElementById('docName').innerText = data.doc_name || "Unknown Design";
 
     // Sort parameters A-Z (case-insensitive)
@@ -574,7 +580,7 @@ function renderConfigs(configs, activeConfig, isDirty) {
         
         if (name === activeConfig) {
             if (isDirty) {
-                combinedStyle += ' border-color: #dc3545; color: #dc3545;';
+                combinedStyle += ' border-color: var(--text-danger, #dc3545); color: var(--text-danger, #dc3545);';
             dirtyIndicator = '<span style="font-size: calc(var(--font-size-base) - 3px); opacity: 0.8; margin-left: 5px;">(Modified)</span>';
             } else {
                 combinedStyle += ' border-color: #28a745; color: #28a745;';
