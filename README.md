@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.6.0
+**Version:** 1.6.1
 
 **Author:** Ed Johnson (Making With An EdJ)
 
@@ -19,13 +19,9 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 **LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
 
 ---
-## ✨ What's New in v1.6.0
+## ✨ What's New in v1.6.1
 
-* **Palette geometry persistence:** The palette now remembers its width, height, position, and docking state between sessions instead of always reopening at a fixed 360x500.
-* **Host-side theme storage:** Imported and edited themes now persist to disk (not just browser `localStorage`), so custom themes survive a palette reload. Added a **Remove Selected Theme** button and a **Factory Reset** that wipes both the local and host-side theme stores.
-* **Six bundled theme presets:** Classic Light, Classic Dark, Gruvbox Light, Hacker, Hot Pink, and EdJ Dark now ship ready to import from the Themes tab.
-* **Fleet UI standardization:** The header now shows the title with the version tag and design name stacked underneath it, and a persistent footer with the add-in name and version is now visible on every tab.
-* **Accessibility pass:** Every themed button now defines its own readable foreground color instead of assuming white text, all interactive controls (buttons, inputs, collapsible sections, the info icons) show a visible keyboard focus ring, and error/danger-styled text and modal overlays go through themeable tokens instead of hardcoded colors. Applies to all 9 built-in themes and the sample custom theme.
+* **Font controls now reach every element:** The Themes tab's Font Family and Base Font Size selectors previously left buttons, dropdowns, and text inputs stuck on the browser's default UI font — a browser quirk where `font-family`/`font-size` don't cascade onto form controls by default. Fixed across all three bundled stylesheets, so changing either setting now updates every visible control, not just headings and body text.
 
 *For older release notes, please see the **CHANGELOG**.*
 

@@ -1,6 +1,11 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.6.1
+
+* **Fixed font controls not reaching every element:** The Themes tab's Font Family / Base Font Size selectors could write the correct CSS variables and still visibly do nothing for buttons, dropdowns, and text inputs — a browser default where form controls don't inherit `font-family`/`font-size` from the page like other elements do. All three bundled stylesheets (`liveutils_style.css`, `style.css`, `style-ej.css`) now explicitly inherit both properties on `button`, `select`, `input`, and `textarea`.
+
+---
 ## ✨ What's New in v1.6.0
 
 * **Palette geometry persistence:** The palette now remembers its width, height, position, and docking state between sessions instead of always reopening at a fixed 360x500.
