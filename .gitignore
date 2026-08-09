@@ -54,6 +54,7 @@ CLAUDE.md
 # ----------------------
 Archive/
 resources/plugins.json
+resources/preferences.json
 
 # Affiity Desktop
 *.af
