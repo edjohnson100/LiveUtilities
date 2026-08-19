@@ -1,6 +1,12 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.6.2
+
+* **Refreshed app icon and tool clip:** Replaced the placeholder toolClip image and updated the add-in's app icon.
+* **Clearer command tooltip:** The Scripts and Add-ins button description now spells out what LiveUtilities actually manages (User Parameters, Configuration Snapshots, Design Changelogs, Macro Scripts, and UI Themes) instead of a shorter generic blurb.
+
+---
 ## ✨ What's New in v1.6.1
 
 * **Fixed font controls not reaching every element:** The Themes tab's Font Family / Base Font Size selectors could write the correct CSS variables and still visibly do nothing for buttons, dropdowns, and text inputs — a browser default where form controls don't inherit `font-family`/`font-size` from the page like other elements do. All three bundled stylesheets (`liveutils_style.css`, `style.css`, `style-ej.css`) now explicitly inherit both properties on `button`, `select`, `input`, and `textarea`.

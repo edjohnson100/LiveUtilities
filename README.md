@@ -1,6 +1,6 @@
 # LiveUtilities for Autodesk Fusion
 
-**Version:** 1.6.1
+**Version:** 1.6.2
 
 **Author:** Ed Johnson (Making With An EdJ)
 
@@ -19,6 +19,11 @@ Fusion’s native dialogs are functional, but they are often modal (blocking you
 **LiveUtilities** solves this by combining LiveParameters, LiveConfig, a Changelog Sidecar, and a Macro Launcher into a single, modeless HTML palette that docks right inside Fusion. Instead of constantly opening and closing native dialogs, you have a persistent, tabbed interface to manage your design's math, states, and utilities in real-time.
 
 ---
+## ✨ What's New in v1.6.2
+
+* **Refreshed app icon and tool clip:** Replaced the placeholder toolClip image and updated the add-in's app icon.
+* **Clearer command tooltip:** The Scripts and Add-ins button description now spells out what LiveUtilities actually manages (User Parameters, Configuration Snapshots, Design Changelogs, Macro Scripts, and UI Themes) instead of a shorter generic blurb.
+
 ## ✨ What's New in v1.6.1
 
 * **Font controls now reach every element:** The Themes tab's Font Family and Base Font Size selectors previously left buttons, dropdowns, and text inputs stuck on the browser's default UI font — a browser quirk where `font-family`/`font-size` don't cascade onto form controls by default. Fixed across all three bundled stylesheets, so changing either setting now updates every visible control, not just headings and body text.

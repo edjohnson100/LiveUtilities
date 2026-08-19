@@ -418,7 +418,7 @@ def run(context):
         cmdDef = ui.commandDefinitions.addButtonDefinition(
             command_id,
             'Live Utilities',
-            'Persistent tools for Parameters, Configurations, Changelogs, and Macros.',
+            'A unified, persistent palette for real-time management of User Parameters, Configuration Snapshots, Design Changelogs, Macro Scripts, and UI Themes.',
             res_dir
         )
 
