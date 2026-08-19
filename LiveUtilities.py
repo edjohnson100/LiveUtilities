@@ -5,7 +5,9 @@ import os
 import importlib 
 from pathlib import Path
 
+from . import display_utils
 from . import core_logic
+importlib.reload(display_utils)
 importlib.reload(core_logic)
 
 app = None
@@ -38,7 +40,11 @@ class MyCommandExecuteHandler(adsk.core.CommandEventHandler):
             height = geometry.get('height', 500)
 
             palette = ui.palettes.add(palette_id, 'Live Utilities', url, True, True, True, width, height)
-            palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
+            if 'docking_state' not in geometry:
+                palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateRight
+            # Restores the docking state first, then the position -- and moves
+            # the position onto Fusion's own display if the saved coordinates
+            # belong to a monitor Fusion is not currently on (see display_utils).
             core_logic._restore_palette_geometry(palette)
 
             onHtmlEvent = MyHTMLEventHandler()

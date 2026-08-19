@@ -10,6 +10,8 @@ import sys
 import platform
 import importlib.util
 
+from . import display_utils
+
 # ==============================================================================
 # CONSTANTS (From Config & Changelog)
 # ==============================================================================
@@ -146,22 +148,52 @@ def _save_palette_geometry(palette):
             'left': palette.left,
             'top': palette.top,
             'docking_state': int(palette.dockingState),
+            # Recorded so a restore can tell "same monitors as last time" from
+            # "the second screen is gone / rearranged".
+            'display_layout': display_utils.layout_signature(),
         }
         _save_prefs(prefs)
     except RuntimeError:
         pass
 
+PALETTE_DOCK_FLOATING = 0
+
 def _restore_palette_geometry(palette):
+    """Reapply the saved size/position, keeping the palette on Fusion's display.
+
+    A saved left/top can be a valid point on a connected monitor and still be
+    invisible: Fusion will not draw a floating palette that sits outside the
+    display its own main window occupies. Fusion's main window frame is read
+    from the OS (there is no window-geometry property on the Fusion API) and
+    used to tell which display Fusion is actually on.
+    """
     geometry = _load_prefs().get('palette_geometry', {})
+    if not geometry:
+        return None
     try:
-        if 'left' in geometry:
-            palette.left = geometry['left']
-        if 'top' in geometry:
-            palette.top = geometry['top']
-        if 'docking_state' in geometry:
-            palette.dockingState = geometry['docking_state']
+        docking_state = geometry.get('docking_state')
+        if docking_state is not None:
+            palette.dockingState = docking_state
+
+        # Docked palettes ignore left/top -- Fusion owns their placement.
+        if docking_state is not None and int(docking_state) != PALETTE_DOCK_FLOATING:
+            return None
+        if 'left' not in geometry or 'top' not in geometry:
+            return None
+
+        left, top, report = display_utils.resolve_palette_position(
+            geometry['left'], geometry['top'],
+            geometry.get('width', 360), geometry.get('height', 500))
+        palette.left = left
+        palette.top = top
+        return report
     except RuntimeError:
-        pass
+        return None
+
+def palette_display_report():
+    """Troubleshooting dump: monitors, Fusion's window, saved position, verdict."""
+    geometry = _load_prefs().get('palette_geometry', {})
+    return display_utils.describe(geometry)
 
 def add_plugin(path):
     plugins = get_plugins()

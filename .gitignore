@@ -47,7 +47,6 @@ Output/
 # 7. Claude Code (AI assistant local files)
 # ----------------------
 .claude/
-CLAUDE.md
 
 # ----------------------
 # 6. Other Misc Files

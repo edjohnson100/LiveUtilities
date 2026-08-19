@@ -1,0 +1,10 @@
+{
+    "autodeskProduct": "Fusion360",
+    "type": "script",
+    "author": "Ed Johnson",
+    "description": {
+        "": "Reports monitor layout, Fusion's display and the saved Live Utilities palette position."
+    },
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}
