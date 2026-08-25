@@ -536,7 +536,7 @@ function renderParameters(params) {
 function createParamRow(p) {
     const star = p.isFavorite ? '#ff9e3b' : '#555';
     const safeCommHTML = p.comment ? p.comment.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : "";
-    const encodedComm = encodeURIComponent(p.comment || "");
+    const encodedComm = encodeURIComponent(p.comment || "").replace(/'/g, '%27');
 
     const delBtnHtml = p.is_user_param 
         ? `<button class="action-btn del-btn" title="Delete" onclick="deleteParam('${p.name}')">×</button>`
@@ -588,7 +588,7 @@ function renderConfigs(configs, activeConfig, isDirty) {
         }
         
         const safeNameDisplay = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const encodedName = encodeURIComponent(name);
+        const encodedName = encodeURIComponent(name).replace(/'/g, '%27');
         const isChecked = _savedChecked.includes(name) ? 'checked' : '';
 
         container.innerHTML += `
@@ -644,11 +644,13 @@ function renderFeatures(features) {
 
     features.forEach(f => {
         const checked = !f.isSuppressed ? 'checked' : '';
+        const safeNameHTML = f.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const encodedName = encodeURIComponent(f.name).replace(/'/g, '%27');
         container.innerHTML += `
             <div class="data-row">
-                <span class="row-label">${f.name}</span>
+                <span class="row-label">${safeNameHTML}</span>
                 <label class="theme-switch" style="transform: scale(0.8); margin-right: 5px;">
-                    <input type="checkbox" ${checked} onchange="sendToFusion('toggle_feature', {name: '${f.name}', is_suppressed: !this.checked})">
+                    <input type="checkbox" ${checked} onchange="sendToFusion('toggle_feature', {name: decodeURIComponent('${encodedName}'), is_suppressed: !this.checked})">
                     <span class="theme-slider"></span>
                 </label>
             </div>
@@ -667,15 +669,16 @@ function renderVisibility(items) {
     items.forEach(item => {
         const checked = item.isVisible ? 'checked' : '';
         const label = typeLabel[item.type] || item.type;
-        const safeName = item.name.replace(/'/g, "\\'");
+        const safeNameHTML = item.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const encodedName = encodeURIComponent(item.name).replace(/'/g, '%27');
         container.innerHTML += `
             <div class="data-row">
-                <span class="row-label" style="flex:1;">${item.name}
+                <span class="row-label" style="flex:1;">${safeNameHTML}
                     <span style="font-size:calc(var(--font-size-base) - 3px); color:var(--text-sub); margin-left:5px;">${label}</span>
                 </span>
                 <label class="theme-switch" style="transform:scale(0.8); margin-right:5px;">
                     <input type="checkbox" ${checked}
-                           onchange="sendToFusion('toggle_visibility', {name: '${safeName}', is_visible: this.checked})">
+                           onchange="sendToFusion('toggle_visibility', {name: decodeURIComponent('${encodedName}'), is_visible: this.checked})">
                     <span class="theme-slider"></span>
                 </label>
             </div>
@@ -698,7 +701,9 @@ function renderScripts(scripts) {
 
     scripts.forEach(script => {
         const safeName = script.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const encodedPath = encodeURIComponent(script.path);
+        const safePathHTML = script.path.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const encodedPath = encodeURIComponent(script.path).replace(/'/g, '%27');
+        const encodedName = encodeURIComponent(script.name).replace(/'/g, '%27');
 
         // Updated Launcher Button: Switched to btn-success, reduced padding and font size for a sleeker profile.
         launcherContainer.innerHTML += `
@@ -709,9 +714,9 @@ function renderScripts(scripts) {
 
         managerContainer.innerHTML += `
             <div class="data-row" style="margin-bottom: 4px;">
-                <span class="row-label" title="${script.path}">${safeName}</span>
+                <span class="row-label" title="${safePathHTML}">${safeName}</span>
                 <div class="row-controls">
-                    <button class="action-btn del-btn" title="Unlink" onclick="showConfirmModal('Unlink Script', 'Unlink ${safeName}?', function(){ sendToFusion('unlink_script', {path: decodeURIComponent('${encodedPath}')}) })">×</button>
+                    <button class="action-btn del-btn" title="Unlink" onclick="showConfirmModal('Unlink Script', 'Unlink ' + decodeURIComponent('${encodedName}') + '?', function(){ sendToFusion('unlink_script', {path: decodeURIComponent('${encodedPath}')}) })">×</button>
                 </div>
             </div>
         `;

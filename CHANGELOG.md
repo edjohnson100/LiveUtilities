@@ -1,6 +1,11 @@
 # LiveUtilities Changelog
 
 ---
+## ✨ What's New in v1.6.3
+
+* **Fixed a crash when editing items with special characters in their name or comment:** A parameter comment, `CFG_` feature/visibility name, or linked script name containing a straight apostrophe, a line break in a multi-line comment, or a literal double quote could silently fail to open its Edit/Rename/Unlink dialog — clicking the button did nothing, with a `SyntaxError` visible only in DevTools. All free-text fields embedded in the palette's click handlers now go through a single, consistent encode/decode pattern that handles any character safely.
+
+---
 ## ✨ What's New in v1.6.2
 
 * **Refreshed app icon and tool clip:** Replaced the placeholder toolClip image and updated the add-in's app icon.
